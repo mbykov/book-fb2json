@@ -5,12 +5,12 @@ const fse = require('fs-extra')
 const path = require("path")
 const log = console.log
 // const dir = console.dir
-// const util = require("util")
-// let insp = (o) => log(util.inspect(o, false, null))
+const util = require("util")
+let insp = (o) => log(util.inspect(o, false, null))
 
 export default () => "message";
 
-let fbpath = path.resolve(__dirname, '../fb.fb2')
+let fbpath = path.resolve(__dirname, '../fbsample.fb2')
 log('__________________LOG', fbpath)
 
 let md = []
@@ -30,6 +30,7 @@ fse.readFile(fbpath, function(err, data) {
     fb = fb.elements
     let bodies = _.filter(fb, el=> { return el.name == 'body' })
     if (!bodies) return
+    // insp(bodies[0])
     bodies.forEach(body=> {
       let level = 0
       if (body.attributes && body.attributes.name == 'notes') parseNotes(body.elements)
@@ -37,8 +38,9 @@ fse.readFile(fbpath, function(err, data) {
     })
 
     log('__________________________________________')
+    // md = _.sortBy(md, 'level')
     log('____MD___:', md)
-    log('____STYLE___:', style)
+    // log('____STYLE___:', style)
 
   } catch(err) {
     log('ERR:', err)
@@ -50,37 +52,40 @@ function parseTitle(elements, level) {
   if (!el) return {level: level, text: 'no title'}
   let text = el.elements[0].text
   // log('___________title:', level, text)
-  // let header = ["#".repeat(level), text] .join(' ')
-  // let title = {level: level, text: text}
-  // // md.push(header)
-  // return title
   return text
 }
 
 function parseSection(elements, level) {
-  level += 1
   // log('__sec elements:', elements)
+  level += 1
   let sec = {level: level}
   elements.forEach((el, idx)=> {
-    if (el.name == 'title') sec.title = parseTitle(el.elements, level)
+    if (el.name == 'title') {
+      sec.title = parseTitle(el.elements, level)
+      md.push(sec)
+    }
     else if (el.name == 'section') parseSection(el.elements, level)
     else if (el.name == 'p') {
+      // return
+      if (!el.elements) return
       if (!sec.pars) sec.pars = []
-      if (!sec.styles) sec.styles = []
       let par = parseParagraph(idx, el.elements)
       sec.pars.push(par.text)
-      if (par.style.styles.length) sec.styles.push(par.style)
+      if (par.style.styles.length) {
+        if (!sec.styles) sec.styles = []
+        sec.styles.push(par.style)
+      }
     }
   })
-  log('__sec:', sec)
-  md.push(sec)
+  // log('__sec:', sec)
 }
 
 function parseParagraph(idx, elements) {
   // log('__PAR', elements)
   let partexts = []
   let parstyles = []
-  let par = {idx: idx}
+  // let par = {idx: idx}
+  // if (!elements) return {text: {idx: idx}, style: {idx: idx, styles: []}}
   elements.forEach(el=> {
     if (el.name == 'style') {
       // log('__STYLE', el)
