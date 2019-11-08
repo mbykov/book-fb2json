@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XML Spy v4.4 U (http://www.xmlspy.com) by Dmitry Grobov (DDS) -->
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <stylesheet type="text/css">
+        .body{font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;}
+        .p{margin:0.5em 0 0 0.3em; padding:0.2em; text-align:justify;}
+    </stylesheet>
+    <body>
+        <title>
+            <p>ТОМ 1</p>
+        </title>
+        <section>
+            <title>
+                <p>ЧАСТЬ ПЕРВАЯ</p>
+            </title>
+            <section>
+                <title>
+                    <p>I</p>
+                </title>
+                <p>-
+                    <style name="foreign lang" xml:lang="fr">Еh bien, mon prince. Genes et Lucques ne sont plus que des
+                        apanages, des
+                    </style>
+                    поместья,
+                    <style name="foreign lang" xml:lang="fr">de la famille Buonaparte. Non, je vous previens, que si
+                        vous ne me dites pas, que nous avons la guerre, si vous vous permettez encore de pallier toutes
+                        les infamies, toutes les atrocites de cet Antichrist (ma parole, j'y crois) -- je ne vous
+                        connais plus, vous n'etes plus mon ami, vous n'etes plus
+                    </style>
+                    мой верный раб,
+                    <style name="foreign lang" xml:lang="fr">comme vous dites</style>
+                    <a xlink:href="#note_1" type="note">1</a>.
+                    Ну, здравствуйте, здравствуйте.
+                    <style name="foreign lang" xml:lang="fr">Je vois que je vous fais peur</style>
+                    <a xlink:href="#note_2" type="note">2</a>, садитесь и рассказывайте.
+                </p>
+                <p>
+                  Второй параграф. Второй параграф. Второй параграф. Второй параграф. Второй параграф.
+                </p>
+            </section>
+        </section>
+    </body>
+</FictionBook>
