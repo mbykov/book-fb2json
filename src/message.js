@@ -38,8 +38,8 @@ fse.readFile(fbpath, function(err, data) {
     })
 
     log('__________________________________________')
-    // md = _.sortBy(md, 'level')
     log('____MD___:', md)
+    insp(md)
     // log('____STYLE___:', style)
 
   } catch(err) {
@@ -91,10 +91,15 @@ function parseParagraph(idx, elements) {
       // log('__STYLE', el)
       let style = parseStyle(el.elements, el.attributes)
       partexts.push(style.text)
-      parstyles.push({idx: idx, start: style.start, end: style.end})
+      parstyles.push({idx: idx, attr: style.attr, name: style.name, start: style.start, end: style.end})
     }
     else if (el.type == 'text') partexts.push(parseText(idx, el.text))
-    // else if (el.name == 'a') parseLink(el.elements, el.attributes)
+    else if (el.name == 'a') {
+      let href = parseLink(el.elements, el.attributes)
+      partexts.push(href.text)
+      parstyles.push({idx: idx, attr: href.attr, name: href.name, start: href.start, end: href.end})
+    }
+    else throw new Error('ERR-STYLE'+JSON.stringify(el))
   })
   let text = partexts.join(' ')
   return {text: {idx: idx, text: text}, style: {idx: idx, styles: parstyles}}
@@ -106,12 +111,13 @@ function parseText(idx, text) {
   return text
 }
 
-
 function parseStyle(elements, attributes) {
   // log('__STYLE-att', attributes)
   // log('__STYLE', elements)
-  let lang
-  if (attributes.name == 'foreign lang') lang = attributes['xml:lang']
+  let attr, name
+  if (attributes.name == 'foreign lang') attr='lang', name = attributes['xml:lang']
+  else if (attributes.name == 'italic') attr = 'name', name = attributes.name
+  else throw new Error('ATTR'+attributes)
   // only one element, has attr: type=text
   let el = elements[0]
   // log('____________________EL', el)
@@ -121,29 +127,29 @@ function parseStyle(elements, attributes) {
   let end = pos + text.split(' ').length - 1
   // log('_________________POS', pos, end)
   pos = end + 1
-  let res = {text: text, start: start, end: end}
-  if (lang) res.lang = lang
+  let res = {attr: attr, name: name, text: text, start: start, end: end}
+  // if (lang) res.lang = lang
   return res
 }
-
-// '- Еh bien, mon prince. Genes et Lucques ne sont plus que des apanages, des поместья, de la famille Buonaparte. Non, je vous previens, que si vous ne me dites pas, que nous avons la guerre, si vous vous permettez encore de pallier toutes les infamies, toutes les atrocites de cet Antichrist (ma parole, j\'y crois) -- je ne vous connais plus, vous n\'etes plus mon ami, vous n\'etes plus мой верный раб, comme vous dites . Ну, здравствуйте, здравствуйте. Je vois que je vous fais peur , садитесь и рассказывайте.'
 
 function parseLink(elements, attributes) {
   log('__Link-att', attributes)
   log('__Link-els', elements)
-  let lang
-  let span = '<span>'
-  if (attributes.name == 'foreign lang') lang = attributes['xml:lang']
-  if (lang) span = ['<span lang="', lang, '">'].join('')
-
-  // elements.forEach(el=> {
-  //   if (el.type == 'text') {
-  //     let text = cleanText(el.text)
-  //     span = [span, text, '</span>'].join('')
-  //     md.push(span)
-  //   }
-  // })
+  let attr, name
+  if (attributes.type == 'note') attr = 'href', name = attributes['xlink:href']
+  else throw new Error('HREF element has no type=note')
+  // only one element, has attr: type=note
+  let el = elements[0]
+  let text = cleanText(el.text)
+  let start = pos
+  let end = pos + text.split(' ').length - 1
+  pos = end + 1
+  let res = {attr: attr, name: name, text: text, start: start, end: end}
+  log('_________________XLINK', res)
+  return res
 }
+
+// '- Еh bien, mon prince. Genes et Lucques ne sont plus que des apanages, des поместья, de la famille Buonaparte. Non, je vous previens, que si vous ne me dites pas, que nous avons la guerre, si vous vous permettez encore de pallier toutes les infamies, toutes les atrocites de cet Antichrist (ma parole, j\'y crois) -- je ne vous connais plus, vous n\'etes plus mon ami, vous n\'etes plus мой верный раб, comme vous dites . Ну, здравствуйте, здравствуйте. Je vois que je vous fais peur , садитесь и рассказывайте.'
 
 function parseNotes(notes) {
   // log('__notes', notes)
