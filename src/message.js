@@ -39,7 +39,7 @@ fse.readFile(fbpath, function(err, data) {
 
     log('__________________________________________')
     log('____MD___:', md)
-    insp(md)
+    // insp(md)
     // log('____STYLE___:', style)
 
   } catch(err) {
@@ -65,8 +65,24 @@ function parseSection(elements, level) {
       md.push(sec)
     }
     else if (el.name == 'section') parseSection(el.elements, level)
-    else if (el.name == 'p') {
-      // return
+    else if (el.name == 'image') return
+    else if (el.name == 'empty-line') return
+    else if (el.name == 'text-author') return
+    else if (el.name == 'poem') parseSection(el.elements, level)
+    else if (el.name == 'stanza') {
+      let stanzatitle = _.find(el.elements, el=> { return el.name == 'title'})
+      if (!stanzatitle) {
+        stanzatitle = { type: 'element', name: 'title', elements: [ { type: 'element', name: 'p', elements: [ { type: 'text', text: '' } ] } ] }
+        el.elements.push(stanzatitle)
+      }
+      parseSection(el.elements, level)
+    }
+    else if (el.name == 'epigraph') {
+      // log('_______________EPIGRAPH', el)
+      parseSection(el.elements, level)
+    }
+    else if (el.name == 'p' || el.name == 'v') {
+      // if (el.name == 'v') log('___________________________________V', el.elements, sec)
       if (!el.elements) return
       if (!sec.pars) sec.pars = []
       let par = parseParagraph(idx, el.elements)
@@ -76,6 +92,7 @@ function parseSection(elements, level) {
         sec.styles.push(par.style)
       }
     }
+    else throw new Error('SEC ERR:' + JSON.stringify(el))
   })
   // log('__sec:', sec)
 }
@@ -84,11 +101,8 @@ function parseParagraph(idx, elements) {
   // log('__PAR', elements)
   let partexts = []
   let parstyles = []
-  // let par = {idx: idx}
-  // if (!elements) return {text: {idx: idx}, style: {idx: idx, styles: []}}
   elements.forEach(el=> {
     if (el.name == 'style') {
-      // log('__STYLE', el)
       let style = parseStyle(el.elements, el.attributes)
       partexts.push(style.text)
       parstyles.push({idx: idx, attr: style.attr, name: style.name, start: style.start, end: style.end})
@@ -133,8 +147,8 @@ function parseStyle(elements, attributes) {
 }
 
 function parseLink(elements, attributes) {
-  log('__Link-att', attributes)
-  log('__Link-els', elements)
+  // log('__Link-att', attributes)
+  // log('__Link-els', elements)
   let attr, name
   if (attributes.type == 'note') attr = 'href', name = attributes['xlink:href']
   else throw new Error('HREF element has no type=note')
@@ -145,7 +159,7 @@ function parseLink(elements, attributes) {
   let end = pos + text.split(' ').length - 1
   pos = end + 1
   let res = {attr: attr, name: name, text: text, start: start, end: end}
-  log('_________________XLINK', res)
+  // log('_________________XLINK', res)
   return res
 }
 
