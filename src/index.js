@@ -8,7 +8,7 @@ const log = console.log
 const util = require("util")
 let insp = (o) => log(util.inspect(o, false, null))
 
-let fbpath = path.resolve(__dirname, '../fbsample.fb2')
+let fbpath = path.resolve(__dirname, '../../fb2json/Junk/fbsample.fb2')
 log('__________________LOG', fbpath)
 let md = []
 let style = []
