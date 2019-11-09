@@ -8,15 +8,13 @@ const log = console.log
 const util = require("util")
 let insp = (o) => log(util.inspect(o, false, null))
 
-let fbpath = path.resolve(__dirname, '../../fb2json/Junk/fbsample.fb2')
-log('__________________LOG', fbpath)
 let md = []
 let style = []
 let pos = 0
 
 const convert = require('xml-js')
 
-export default () => {
+export default (fbpath) => {
   return new Promise((resolve, reject) => {
     // stream.on('data', chunk => chunks.push(chunk))
     // stream.on('error', reject)
@@ -31,7 +29,9 @@ export default () => {
         fb = fb.elements
         let bodies = _.filter(fb, el=> { return el.name == 'body' })
         if (!bodies) return
+
         // insp(bodies[0])
+
         bodies.forEach(body=> {
           let level = 0
           if (body.attributes && body.attributes.name == 'notes') parseNotes(body.elements)
@@ -116,8 +116,15 @@ function parseParagraph(idx, elements) {
       partexts.push(style.text)
       parstyles.push({idx: idx, attr: style.attr, name: style.name, start: style.start, end: style.end})
     }
-    else if (el.type == 'text') partexts.push(parseText(idx, el.text))
-    else if (el.name == 'a') {
+    else if (el.type == 'text') partexts.push(parseText(el.text))
+    else if (el.name == 'emphasis' || el.name == 'strong') {
+      log('__EMPH:', el)
+      let tag = parseInlineTag(elements, el.name)
+      if (!tag) return
+      partexts.push(tag.text)
+      parstyles.push({idx: idx, name: tag.name, start: tag.start, end: tag.end})
+      // throw new Error('_________EMPHA')
+    } else if (el.name == 'a') {
       let href = parseLink(el.elements, el.attributes)
       partexts.push(href.text)
       parstyles.push({idx: idx, attr: href.attr, name: href.name, start: href.start, end: href.end})
@@ -128,10 +135,24 @@ function parseParagraph(idx, elements) {
   return {text: {idx: idx, text: text}, style: {idx: idx, styles: parstyles}}
 }
 
-function parseText(idx, text) {
+function parseText(text) {
   text = cleanText(text)
   pos += text.split(' ').length
   return text
+}
+
+function parseInlineTag(elements, name) {
+  let el = elements[0]
+  if (el.type != 'text') return
+  if (el.type != 'text') log('!', elements, name, '\nEL-0:', el)
+  if (el.type != 'text') throw new Error('inline tag element has no type=text attribute')
+  let text = cleanText(el.text)
+  pos += text.split(' ').length
+  let start = pos
+  let end = pos + text.split(' ').length - 1
+  pos = end + 1
+  let res = {name: name, text: text, start: start, end: end}
+  return res
 }
 
 function parseStyle(elements, attributes) {
@@ -143,7 +164,6 @@ function parseStyle(elements, attributes) {
   else throw new Error('ATTR'+attributes)
   // only one element, has attr: type=text
   let el = elements[0]
-  // log('____________________EL', el)
   if (el.type != 'text') throw new Error('style element has no type=text attribute')
   let text = cleanText(el.text)
   let start = pos
@@ -151,7 +171,6 @@ function parseStyle(elements, attributes) {
   // log('_________________POS', pos, end)
   pos = end + 1
   let res = {attr: attr, name: name, text: text, start: start, end: end}
-  // if (lang) res.lang = lang
   return res
 }
 
@@ -172,13 +191,12 @@ function parseLink(elements, attributes) {
   return res
 }
 
-// '- Еh bien, mon prince. Genes et Lucques ne sont plus que des apanages, des поместья, de la famille Buonaparte. Non, je vous previens, que si vous ne me dites pas, que nous avons la guerre, si vous vous permettez encore de pallier toutes les infamies, toutes les atrocites de cet Antichrist (ma parole, j\'y crois) -- je ne vous connais plus, vous n\'etes plus mon ami, vous n\'etes plus мой верный раб, comme vous dites . Ну, здравствуйте, здравствуйте. Je vois que je vous fais peur , садитесь и рассказывайте.'
-
 function parseNotes(notes) {
   // log('__notes', notes)
 }
 
 function cleanText(str) {
+  if (!str) return ''
   let clean = str.replace(/\s\s+/g, ' ')
   return clean
 }
