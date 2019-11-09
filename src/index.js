@@ -21,6 +21,7 @@ export default (fbpath) => {
     // stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
     fse.readFile(fbpath, function(err, data) {
       let xml = data.toString()
+      let tree
       try {
         let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
         let res = JSON.parse(json).elements
@@ -28,165 +29,100 @@ export default (fbpath) => {
         if (!fb) return
         fb = fb.elements
         let bodies = _.filter(fb, el=> { return el.name == 'body' })
-        if (!bodies) return
+        // description !
+        let body = bodies[0]
+        // notes !
+        let els = body.elements
 
-        // insp(bodies[0])
+        // log('FB', body)
+        // insp(els)
 
-        bodies.forEach(body=> {
-          let level = 0
-          if (body.attributes && body.attributes.name == 'notes') parseNotes(body.elements)
-          else parseSection(body.elements, level)
+        let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
+        let title
+        if (xtitle) title = parseTitle(xtitle.elements)
+        else title = 'unknown, parse descr'
+        // log('BOOK-TITLE', title)
+        tree = {text: title}
+        let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
+        let parent = tree
+
+        xsections.forEach(sec=> {
+          parseSec(parent, sec)
         })
-        // log('____MD___:', md)
-        // insp(md)
-        resolve(md)
 
       } catch(err) {
         log('ERR:', err)
         reject(err, null)
       }
+
+      // log('TREE', tree)
+      resolve(tree)
+      // insp(tree)
     })
   })
-
 }
 
+function parseSec(parent, sec) {
+  let elements = sec.elements
+  let xtitle = _.find(elements, el=> { return el.name == 'title'})
+  let title = parseTitle(xtitle.elements)
+  // log('sec-TITLE', title)
+  let secNode = {text: title}
+  let xsections = _.filter(elements, el=> { return el.name == 'section'})
+  // log('________________________SECS', xsections.length)
+  xsections.forEach(child=> {
+    parseSec(secNode, child)
+  })
+  let xpars = _.filter(elements, el=> { return el.name == 'p'})
+  if (xpars.length) secNode.pars = [], secNode.styles = []
+  xpars.forEach((xpar, idx)=> {
+    if (!xpar.elements) return
+    let par = parsePar(xpar.elements, idx)
+    if (par.text) secNode.pars.push(par.text)
+    if (par.style) secNode.styles.push(par.style)
+  })
+  if (!parent.sections) parent.sections = []
+  parent.sections.push(secNode)
+}
 
-function parseTitle(elements, level) {
+function parsePar(els, idx) {
+  let texts = []
+  let styles = []
+  let pos = 0
+  els.forEach(el=> {
+    // log('_______________PAR ELEM', el)
+    if (el.type == 'text') {
+      let text = cleanText(el.text)
+      texts.push(text)
+      pos += text.split(' ').length
+    } else if (el.type == 'element' && (el.name == 'emphasis' || el.name == 'strong')) {
+      if (!el.elements) throw new Error('__EMPHASIS WO ELEMENTS')
+      let emph = el.elements[0]
+      let text = cleanText(emph.text)
+      if (emph.type == 'text') texts.push(emph.text)
+      pos += text.split(' ').length
+      let start = pos
+      let end = pos + text.split(' ').length - 1
+      pos = end + 1
+      let style = {name: 'strong', text: text, start: start, end: end}
+      styles.push(style)
+    } else if (el.type == 'element' && el.name == 'a') {
+      return
+    } else if (el.type == 'element' && el.name == 'style') {
+      return
+    } else throw new Error('NOT TEXT'+JSON.stringify(el))
+  })
+  let text = texts.join('')
+  return {text: {idx: idx, text: text}, style: {idx: idx, styles: styles}}
+}
+
+function parseTitle(elements) {
   let el = elements[0]
-  if (!el) return {level: level, text: 'no title'}
-  // if (!el.elements) return {level: level, text: '____HERE'}
+  if (!el) return {text: 'no title'}
   let text = el.elements[0].text
-  // log('___________title:', level, text)
   return cleanText(text)
 }
 
-function parseSection(elements, level) {
-  // log('__sec elements:', elements)
-  level += 1
-  let sec = {level: level}
-  // === искать title, если нет, добавить auto, и push sec ?
-  elements.forEach((el, idx)=> {
-    if (el.name == 'title') {
-      sec.title = parseTitle(el.elements, level)
-      md.push(sec)
-    }
-    else if (el.name == 'section') parseSection(el.elements, level)
-    else if (el.name == 'image') return
-    else if (el.name == 'empty-line') return
-    // else if (el.name == 'text-author') sec.author = parseTitle(el.elements, level)
-    else if (el.name == 'poem') parseSection(el.elements, level)
-    else if (el.name == 'stanza') {
-      fakeTitle(el.elements)
-      parseSection(el.elements, level)
-    }
-    else if (el.name == 'epigraph') fakeTitle(el.elements), parseSection(el.elements, level) // тут, наверное, лучше не Section иметь, а special note, inline контейнер
-    else if (el.name == 'p' || el.name == 'v' || el.name == 'text-author') {
-      // if (el.name == 'v') log('___________________________________V', el.elements, sec)
-      if (!el.elements) return
-      if (!sec.pars) sec.pars = []
-      let par = parseParagraph(idx, el.elements)
-      sec.pars.push(par.text)
-      if (par.style.styles.length) {
-        if (!sec.styles) sec.styles = []
-        sec.styles.push(par.style)
-      }
-    }
-    else throw new Error('SEC ERR:' + JSON.stringify(el))
-  })
-}
-
-function fakeTitle(elements) {
-  let faketitle = _.find(elements, el=> { return el.name == 'title'})
-  if (!faketitle) {
-    faketitle = { type: 'element', name: 'title', elements: [ { type: 'element', name: 'p', elements: [ { type: 'text', text: '' } ] } ] }
-    elements.push(faketitle)
-  }
-}
-
-function parseParagraph(idx, elements) {
-  // log('__PAR', elements)
-  let partexts = []
-  let parstyles = []
-  elements.forEach(el=> {
-    if (el.name == 'style') {
-      let style = parseStyle(el.elements, el.attributes)
-      partexts.push(style.text)
-      parstyles.push({idx: idx, attr: style.attr, name: style.name, start: style.start, end: style.end})
-    }
-    else if (el.type == 'text') partexts.push(parseText(el.text))
-    else if (el.name == 'emphasis' || el.name == 'strong') {
-      // log('__EMPH:', el)
-      let tag = parseInlineTag(elements, el.name)
-      if (!tag) return
-      partexts.push(tag.text)
-      parstyles.push({idx: idx, name: tag.name, start: tag.start, end: tag.end})
-      // throw new Error('_________EMPHA')
-    } else if (el.name == 'a') {
-      let href = parseLink(el.elements, el.attributes)
-      partexts.push(href.text)
-      parstyles.push({idx: idx, attr: href.attr, name: href.name, start: href.start, end: href.end})
-    }
-    else throw new Error('ERR-STYLE'+JSON.stringify(el))
-  })
-  let text = partexts.join(' ')
-  return {text: {idx: idx, text: text}, style: {idx: idx, styles: parstyles}}
-}
-
-function parseText(text) {
-  text = cleanText(text)
-  pos += text.split(' ').length
-  return text
-}
-
-function parseInlineTag(elements, name) {
-  let el = elements[0]
-  if (el.type != 'text') return
-  if (el.type != 'text') log('!', elements, name, '\nEL-0:', el)
-  if (el.type != 'text') throw new Error('inline tag element has no type=text attribute')
-  let text = cleanText(el.text)
-  pos += text.split(' ').length
-  let start = pos
-  let end = pos + text.split(' ').length - 1
-  pos = end + 1
-  let res = {name: name, text: text, start: start, end: end}
-  return res
-}
-
-function parseStyle(elements, attributes) {
-  // log('__STYLE-att', attributes)
-  // log('__STYLE', elements)
-  let attr, name
-  if (attributes.name == 'foreign lang') attr='lang', name = attributes['xml:lang']
-  else if (attributes.name == 'italic') attr = 'name', name = attributes.name
-  else throw new Error('ATTR'+attributes)
-  // only one element, has attr: type=text
-  let el = elements[0]
-  if (el.type != 'text') throw new Error('style element has no type=text attribute')
-  let text = cleanText(el.text)
-  let start = pos
-  let end = pos + text.split(' ').length - 1
-  // log('_________________POS', pos, end)
-  pos = end + 1
-  let res = {attr: attr, name: name, text: text, start: start, end: end}
-  return res
-}
-
-function parseLink(elements, attributes) {
-  // log('__Link-att', attributes)
-  // log('__Link-els', elements)
-  let attr, name
-  if (attributes.type == 'note') attr = 'href', name = attributes['xlink:href']
-  else throw new Error('HREF element has no type=note')
-  // only one element, has attr: type=note
-  let el = elements[0]
-  let text = cleanText(el.text)
-  let start = pos
-  let end = pos + text.split(' ').length - 1
-  pos = end + 1
-  let res = {attr: attr, name: name, text: text, start: start, end: end}
-  // log('_________________XLINK', res)
-  return res
-}
 
 function parseNotes(notes) {
   // log('__notes', notes)
