@@ -37,12 +37,9 @@ export default (fbpath) => {
           if (body.attributes && body.attributes.name == 'notes') parseNotes(body.elements)
           else parseSection(body.elements, level)
         })
-
-        log('__________________________________________MD')
         // log('____MD___:', md)
-        resolve(md)
         // insp(md)
-        // log('____STYLE___:', style)
+        resolve(md)
 
       } catch(err) {
         log('ERR:', err)
@@ -118,7 +115,7 @@ function parseParagraph(idx, elements) {
     }
     else if (el.type == 'text') partexts.push(parseText(el.text))
     else if (el.name == 'emphasis' || el.name == 'strong') {
-      log('__EMPH:', el)
+      // log('__EMPH:', el)
       let tag = parseInlineTag(elements, el.name)
       if (!tag) return
       partexts.push(tag.text)
