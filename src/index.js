@@ -22,13 +22,13 @@ export default (fbpath) => {
     fse.readFile(fbpath, function(err, data) {
       let xml = data.toString()
       let tree
+      let descr = {}
       try {
         let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
         let res = JSON.parse(json).elements
         let fb = _.find(res, el=> { return el.name == 'FictionBook' })
         if (!fb) return
         fb = fb.elements
-        let descr = {}
         let description = _.find(fb, el=> { return el.name == 'description' })
         let descrs = description.elements
         let xtitleInfo = _.find(descrs, el=> { return el.name == 'title-info' })
@@ -43,7 +43,7 @@ export default (fbpath) => {
         if (titleInfo['book-title']) descr.bookTitle = getText(titleInfo['book-title'])
         if (titleInfo.lang) descr.lang = getText(titleInfo.lang)
         if (annotation) descr.annotation = annotation.text.text
-        log('_DESCR', descr)
+        // log('_DESCR', descr)
 
         let bodies = _.filter(fb, el=> { return el.name == 'body' })
         let body = bodies[0]
@@ -69,8 +69,7 @@ export default (fbpath) => {
         reject(err, null)
       }
 
-      // log('TREE', tree)
-      resolve(tree)
+      resolve({tree: tree, descr: descr})
       // insp(tree)
     })
   })
@@ -108,7 +107,7 @@ function getOnlyEl(xdoc) {
 
 function getText(xdoc) {
   let el = xdoc[0]
-  let text = (el.text) ? el.text : ''
+  let text = (el.text) ? cleanText(el.text) : ''
   return text
 }
 
