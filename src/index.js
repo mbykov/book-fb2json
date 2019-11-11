@@ -28,12 +28,27 @@ export default (fbpath) => {
         let fb = _.find(res, el=> { return el.name == 'FictionBook' })
         if (!fb) return
         fb = fb.elements
+        let descr = {}
+        let description = _.find(fb, el=> { return el.name == 'description' })
+        let descrs = description.elements
+        let xtitleInfo = _.find(descrs, el=> { return el.name == 'title-info' })
+        let xdocInfo = _.find(descrs, el=> { return el.name == 'document-info' })
+        let xpubInfo = _.find(descrs, el=> { return el.name == 'publish-info' })
+        // log('xTitle:', xtitleInfo)
+        let titleInfo = stripElement(xtitleInfo)
+        // log('Title:', titleInfo)
+        let annotation
+        if (titleInfo.author) descr.author = parseAuthor(titleInfo.author)
+        if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
+        if (titleInfo['book-title']) descr.bookTitle = getText(titleInfo['book-title'])
+        if (titleInfo.lang) descr.lang = getText(titleInfo.lang)
+        if (annotation) descr.annotation = annotation.text.text
+        log('_DESCR', descr)
+
         let bodies = _.filter(fb, el=> { return el.name == 'body' })
-        // description !
         let body = bodies[0]
         // notes !
         let els = body.elements
-
         // log('FB', body)
         // insp(els)
 
@@ -44,10 +59,9 @@ export default (fbpath) => {
         // log('BOOK-TITLE', title)
         tree = {text: title}
         let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
-        let parent = tree
-
+        // let parent = tree
         xsections.forEach(sec=> {
-          parseSec(parent, sec)
+          parseSec(tree, sec)
         })
 
       } catch(err) {
@@ -61,6 +75,49 @@ export default (fbpath) => {
     })
   })
 }
+
+function parseAuthor(els) {
+  let fname = _.find(els, el=> { return el.name == 'first-name' })
+  let mname = _.find(els, el=> { return el.name == 'middle-name' })
+  let lname = _.find(els, el=> { return el.name == 'last-name' })
+  let author = [getOnlyEl(fname), getOnlyEl(mname), getOnlyEl(lname)].join(' ')
+  return author
+}
+
+function stripElement(xdoc) {
+  let doc = {}
+  if (xdoc.type == 'element') doc = getEls(xdoc)
+  else if (xdoc.type == 'text') doc.text = getText(xdoc)
+  // else if (xdoc.type == 'p') doc.text = getText(xdoc)
+  return doc
+}
+
+function getEls(xdoc) {
+  let doc = {}
+  xdoc.elements.forEach(el=> {
+    doc[el.name] = el.elements
+  })
+  return doc
+}
+
+function getOnlyEl(xdoc) {
+  let el = xdoc.elements[0]
+  let text = (el.text) ? el.text : ''
+  return text
+}
+
+function getText(xdoc) {
+  let el = xdoc[0]
+  let text = (el.text) ? el.text : ''
+  return text
+}
+
+function parseParagraph(el, idx) {
+  if (el.type != 'element' || el.name != 'p') throw new Error('ERR: not a paragraph' + JSON.stringify(el))
+  let par = parsePar(el.elements, idx)
+  return par
+}
+
 
 function parseSec(parent, sec) {
   let elements = sec.elements
@@ -110,7 +167,10 @@ function parsePar(els, idx) {
       return
     } else if (el.type == 'element' && el.name == 'style') {
       return
-    } else throw new Error('NOT TEXT'+JSON.stringify(el))
+    } else {
+      log('ERR: NOT PAR TEXT:', el)
+      throw new Error('NOT PAR TEXT')
+    }
   })
   let text = texts.join('')
   return {text: {idx: idx, text: text}, style: {idx: idx, styles: styles}}
