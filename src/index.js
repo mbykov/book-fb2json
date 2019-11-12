@@ -4,8 +4,15 @@ const _ = require('lodash')
 const fse = require('fs-extra')
 const path = require("path")
 const log = console.log
-// const dir = console.dir
+const isGzip = require('is-gzip')
+const isZip = require('is-zip');
 const util = require("util")
+const pako = require('pako')
+const unzipper = require('unzipper')
+// const miss = require('mississippi')
+const etl = require('etl')
+const iso13 = require('./lib/iso13')
+
 let insp = (o) => log(util.inspect(o, false, null))
 
 let md = []
@@ -14,65 +21,73 @@ let pos = 0
 
 const convert = require('xml-js')
 
+async function parseZip(fbpath) {
+  const directory = await unzipper.Open.file(fbpath)
+  const file = directory.files[0]
+  const content = await file.buffer()
+  return content
+}
+
 export default (fbpath) => {
-  return new Promise((resolve, reject) => {
-    // stream.on('data', chunk => chunks.push(chunk))
-    // stream.on('error', reject)
-    // stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
-    fse.readFile(fbpath, function(err, data) {
-      let xml = data.toString()
-      let tree
-      let descr = {}
-      try {
-        let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
-        let res = JSON.parse(json).elements
-        let fb = _.find(res, el=> { return el.name == 'FictionBook' })
-        if (!fb) return
-        fb = fb.elements
-        let description = _.find(fb, el=> { return el.name == 'description' })
-        let descrs = description.elements
-        let xtitleInfo = _.find(descrs, el=> { return el.name == 'title-info' })
-        let xdocInfo = _.find(descrs, el=> { return el.name == 'document-info' })
-        let xpubInfo = _.find(descrs, el=> { return el.name == 'publish-info' })
-        // log('xTitle:', xtitleInfo)
-        let titleInfo = stripElement(xtitleInfo)
-        // log('Title:', titleInfo)
-        let annotation
-        if (titleInfo.author) descr.author = parseAuthor(titleInfo.author)
-        if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
-        if (titleInfo['book-title']) descr.bookTitle = getText(titleInfo['book-title'])
-        if (titleInfo.lang) descr.lang = getText(titleInfo.lang)
-        if (annotation) descr.annotation = annotation.text.text
-        // log('_DESCR', descr)
-
-        let bodies = _.filter(fb, el=> { return el.name == 'body' })
-        let body = bodies[0]
-        // notes !
-        let els = body.elements
-        // log('FB', body)
-        // insp(els)
-
-        let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
-        let title
-        if (xtitle) title = parseTitle(xtitle.elements)
-        else title = 'unknown, parse descr'
-        // log('BOOK-TITLE', title)
-        tree = {text: title}
-        let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
-        // let parent = tree
-        xsections.forEach(sec=> {
-          parseSec(tree, sec)
-        })
-
-      } catch(err) {
-        log('ERR:', err)
-        reject(err, null)
-      }
-
-      resolve({tree: tree, descr: descr})
-      // insp(tree)
+  return parseZip(fbpath)
+    .then(buffer=> {
+      let xml = buffer.toString()
+      // console.log('XML', xml.slice(0, 50))
+      let tree = parseTree(xml)
+      return tree
     })
-  })
+}
+
+function parseTree(xml) {
+  let tree
+  let descr = {}
+  try {
+    let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
+    let res = JSON.parse(json).elements
+    let fb = _.find(res, el=> { return el.name == 'FictionBook' })
+    if (!fb) return
+    fb = fb.elements
+    let description = _.find(fb, el=> { return el.name == 'description' })
+    let descrs = description.elements
+    let xtitleInfo = _.find(descrs, el=> { return el.name == 'title-info' })
+    let xdocInfo = _.find(descrs, el=> { return el.name == 'document-info' })
+    let xpubInfo = _.find(descrs, el=> { return el.name == 'publish-info' })
+    // log('xTitle:', xtitleInfo)
+    let titleInfo = stripElement(xtitleInfo)
+    // log('Title:', titleInfo)
+    let annotation
+    if (titleInfo.author) descr.author = parseAuthor(titleInfo.author)
+    if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
+    if (titleInfo['book-title']) descr.title = getText(titleInfo['book-title'])
+    if (titleInfo.lang) descr.lang = getText(titleInfo.lang)
+    if (annotation) descr.annotation = annotation.text.text
+    // log('_DESCR', descr)
+
+    let bodies = _.filter(fb, el=> { return el.name == 'body' })
+    let body = bodies[0]
+    // notes !
+    let els = body.elements
+    // log('FB', body)
+    // insp(els)
+
+    let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
+    let title
+    if (xtitle) title = parseTitle(xtitle.elements)
+    else title = ''
+    // log('BOOK-TITLE', title)
+    tree = {text: title}
+    let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
+    // let parent = tree
+    xsections.forEach(sec=> {
+      parseSec(tree, sec)
+    })
+
+  } catch(err) {
+    log('ERR:', err)
+    throw new Error('ERR: parse XML', +JSON.stringify(err))
+  }
+  let res = {tree: tree, descr: descr}
+  return res
 }
 
 function parseAuthor(els) {
@@ -171,7 +186,7 @@ function parsePar(els, idx) {
       throw new Error('NOT PAR TEXT')
     }
   })
-  let text = texts.join('')
+  let text = texts.join(' ')
   return {text: {idx: idx, text: text}, style: {idx: idx, styles: styles}}
 }
 
