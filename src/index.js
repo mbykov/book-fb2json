@@ -21,6 +21,12 @@ let pos = 0
 
 const convert = require('xml-js')
 
+// https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript
+// function hashCode(s) {
+//   return s.split("").reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+// }
+let hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0)
+
 async function parseZip(fbpath) {
   const directory = await unzipper.Open.file(fbpath)
   const file = directory.files[0]
@@ -86,7 +92,10 @@ function parseTree(xml) {
     log('ERR:', err)
     throw new Error('ERR: parse XML', +JSON.stringify(err))
   }
-  let res = {tree: tree, descr: descr}
+
+  let id = hashCode([descr.author, descr.title, descr.lang].join('-'))
+  descr.id = id
+  let res = { tree: tree, descr: descr }
   return res
 }
 
