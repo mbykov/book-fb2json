@@ -12,6 +12,8 @@ const unzipper = require('unzipper')
 // const miss = require('mississippi')
 const etl = require('etl')
 const iso13 = require('./lib/iso13')
+const iconv = require('iconv-lite');
+// let decoder = new util.TextDecoder('cp1251')
 
 let insp = (o) => log(util.inspect(o, false, null))
 
@@ -34,9 +36,17 @@ async function parseZip(fbpath) {
   return content
 }
 
+async function readFile(fbpath) {
+  const text1251 = await fse.readFile(fbpath)
+  const content = iconv.decode(text1251, 'cp1251').toString()
+  return content
+}
+
 export default (fbpath) => {
-  return parseZip(fbpath)
+  // return parseZip(fbpath)
+  return readFile(fbpath)
     .then(buffer=> {
+      // log('_XML', buffer.slice(0,500))
       let xml = buffer.toString()
       // console.log('XML', xml.slice(0, 50))
       // let tree = parseTree(xml)
@@ -47,13 +57,12 @@ export default (fbpath) => {
       let fb = _.find(res, el=> { return el.name == 'FictionBook' })
       if (!fb) return {}
       fb = fb.elements
-      // let info = parseInfo(fb)
-      let sdocs = parseDocs(fb)
-      // return {info: info, sdocs: sdocs}
-      return {}
+      let info = parseInfo(fb)
+      let docs = parseDocs(fb)
+      return {info: info, docs: docs}
     }).catch(err=> {
       log('ERR:', err)
-      throw new Error('ERR: parse XML', +JSON.stringify(err))
+      // throw new Error('ERR: parse XML', +JSON.stringify(err))
     })
 }
 
@@ -69,7 +78,8 @@ function parseInfo(fb) {
   // log('Title:', titleInfo)
   let annotation
   if (titleInfo.author) descr.author = parseAuthor(titleInfo.author)
-  if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
+  // пока что закрыл
+  // if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
   if (titleInfo['book-title']) descr.title = getText(titleInfo['book-title'])
   if (titleInfo.lang) descr.lang = getText(titleInfo.lang)
   if (annotation) descr.annotation = annotation.text.text
@@ -81,7 +91,7 @@ function parseDocs(fb) {
   let bodies = _.filter(fb, el=> { return el.name == 'body' })
   // log('FB', bodies)
   let body = bodies[0]
-  if (!body) return
+  if (!body) return []
   // notes !
 
   let els = body.elements
@@ -96,13 +106,13 @@ function parseDocs(fb) {
   let level = 0
   let levnum = 0
   let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
-  xsections = xsections.slice(0,1)
+  // xsections = xsections.slice(0,1)
   xsections.forEach(sec=> {
-    log('_sec:', sec.elements.slice(0,2))
+    // log('_sec:', sec.elements.slice(0,2))
     parseSec(docs, level, sec)
   })
-  log('_DOCS', docs)
-  return []
+  // log('_DOCS', docs.length)
+  return docs
 }
 
 function parseSec(docs, level, sec) {
@@ -113,15 +123,15 @@ function parseSec(docs, level, sec) {
   let titledoc = parseParEls(titlels)
   titledoc.level = level
   docs.push(titledoc)
-  log('sec-TITLE', xtitle.elements)
+  // log('sec-TITLE', xtitle.elements)
   let xsections = _.filter(elements, el=> { return el.name == 'section'})
-  log('________________________XSECS', xsections.length)
+  // log('________________________XSECS', xsections.length)
   xsections.forEach(child=> {
     let nextlevel = level+1
     parseSec(nextlevel, child)
   })
   let xpars = _.filter(elements, el=> { return el.name == 'p'})
-  xpars = xpars.slice(0,2)
+  // xpars = xpars.slice(0,2)
   xpars.forEach(xpar=> {
     if (!xpar.elements) return
     let doc = parseParEls(xpar.elements)
@@ -162,15 +172,15 @@ function parseParEls(els) {
       let md = ['*', text, '*'].join('')
       texts.push(md)
     } else if (el.type == 'element' && el.name == 'a') {
-      log('_el:', el)
+      console.log('_el:', el)
       throw new Error('__A ELEMENT')
       return
     } else if (el.type == 'element' && el.name == 'style') {
-      log('_el:', el)
+      console.log('_el:', el)
       throw new Error('__STYLE ELEMENT')
       return
     } else {
-      log('ERR: NOT PAR TEXT:', el)
+      console.log('ERR: NOT PAR TEXT:', el)
       throw new Error('NOT PAR TEXT')
     }
   })
@@ -261,6 +271,7 @@ function getEls(xdoc) {
 }
 
 function getOnlyEl(xdoc) {
+  if (!xdoc) return ''
   let el = xdoc.elements[0]
   let text = (el.text) ? el.text : ''
   return text
