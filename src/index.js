@@ -128,7 +128,15 @@ function parseSec(docs, level, sec) {
     // log('_PAR', doc)
     docs.push(doc)
   })
-  docs.forEach((doc, idx)=> doc.idx = idx)
+  let sidx = {}
+  let levnum = 0
+  docs.forEach((doc, idx)=> {
+    if (!sidx[level]) sidx[level] = 0
+    else sidx[level] +=1
+    doc.idx = idx
+    if (doc.level > -1) doc.levnum = sidx[level]
+    // doc.sid = [level, levnum].join('-')
+  })
 }
 
 function parseParEls(els) {
