@@ -38,7 +38,7 @@ async function parseZip(fbpath) {
 
 async function readFile(fbpath) {
   const text1251 = await fse.readFile(fbpath)
-  const content = iconv.decode(text1251, 'cp1251').toString()
+  const content = iconv.decode(text1251, 'cp1251') //.toString()
   return content
 }
 
@@ -46,9 +46,7 @@ export default (fbpath) => {
   // return parseZip(fbpath)
   return readFile(fbpath)
     .then(buffer=> {
-      // log('_XML', buffer.slice(0,500))
       let xml = buffer.toString()
-      // console.log('XML', xml.slice(0, 50))
       // let tree = parseTree(xml)
       // return tree
 
@@ -79,7 +77,7 @@ function parseInfo(fb) {
   let annotation
   if (titleInfo.author) descr.author = parseAuthor(titleInfo.author)
   // пока что закрыл
-  // if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
+  if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
   if (titleInfo['book-title']) descr.title = getText(titleInfo['book-title'])
   if (titleInfo.lang) descr.lang = getText(titleInfo.lang)
   if (annotation) descr.annotation = annotation.text.text
@@ -312,7 +310,7 @@ function parseSec_(parent, sec) {
   parent.sections.push(secNode)
 }
 
-function parsePar_(els, idx) {
+function parsePar(els, idx) {
   let texts = []
   let styles = []
   let pos = 0
