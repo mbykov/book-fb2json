@@ -19,4 +19,7 @@ fb2json(fbpath)
     log(tree.info)
     log(tree.docs.slice(-10))
     log('_docs', tree.docs.length)
+    tree.docs.forEach(doc=> {
+      if (doc.level > -1) log('_d', doc)
+    })
   })

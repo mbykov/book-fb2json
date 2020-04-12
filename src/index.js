@@ -84,6 +84,7 @@ function parseInfo(fb) {
   return descr
 }
 
+
 function parseDocs(fb) {
   let docs = []
   let bodies = _.filter(fb, el=> { return el.name == 'body' })
@@ -101,8 +102,7 @@ function parseDocs(fb) {
   // else title = ''
   // // log('BOOK-TITLE', title)
 
-  let level = 0
-  let levnum = 0
+  let level = 1
   let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
   // xsections = xsections.slice(0,1)
   xsections.forEach(sec=> {
@@ -110,6 +110,18 @@ function parseDocs(fb) {
     parseSec(docs, level, sec)
   })
   // log('_DOCS', docs.length)
+  let sidx = {}
+  docs.forEach((doc, idx)=> {
+    doc.idx = idx
+    if (doc.level) {
+      if (sidx[level] > -1) sidx[level] += 1
+      else sidx[level] = 0
+      doc.levnum = sidx[level]
+      log('___LEVEL', idx, sidx[level])
+      // doc.sid = [level, levnum].join('-')
+    }
+  })
+
   return docs
 }
 
@@ -136,15 +148,8 @@ function parseSec(docs, level, sec) {
     // log('_PAR', doc)
     docs.push(doc)
   })
-  let sidx = {}
-  let levnum = 0
-  docs.forEach((doc, idx)=> {
-    if (!sidx[level]) sidx[level] = 0
-    else sidx[level] +=1
-    doc.idx = idx
-    if (doc.level > -1) doc.levnum = sidx[level]
-    // doc.sid = [level, levnum].join('-')
-  })
+  // let sidx = {}
+  // let levnum = 0
 }
 
 function parseParEls(els) {
