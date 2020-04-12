@@ -13,6 +13,5 @@ log('RUN: FBPATH', fbpath)
 
 fb2json(fbpath)
   .then(tree=> {
-    log('______tree:', tree)
-    // res.pipe(fse.createWriteStream('firstFile'))
+    // log(tree)
   })

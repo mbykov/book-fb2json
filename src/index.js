@@ -7,7 +7,7 @@ const log = console.log
 const isGzip = require('is-gzip')
 const isZip = require('is-zip');
 const util = require("util")
-const pako = require('pako')
+// const pako = require('pako')
 const unzipper = require('unzipper')
 // const miss = require('mississippi')
 const etl = require('etl')
@@ -39,10 +39,138 @@ export default (fbpath) => {
     .then(buffer=> {
       let xml = buffer.toString()
       // console.log('XML', xml.slice(0, 50))
-      let tree = parseTree(xml)
-      return tree
+      // let tree = parseTree(xml)
+      // return tree
+
+      let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
+      let res = JSON.parse(json).elements
+      let fb = _.find(res, el=> { return el.name == 'FictionBook' })
+      if (!fb) return {}
+      fb = fb.elements
+      // let info = parseInfo(fb)
+      let sdocs = parseDocs(fb)
+      // return {info: info, sdocs: sdocs}
+      return {}
+    }).catch(err=> {
+      log('ERR:', err)
+      throw new Error('ERR: parse XML', +JSON.stringify(err))
     })
 }
+
+function parseInfo(fb) {
+  let descr = {}
+  let description = _.find(fb, el=> { return el.name == 'description' })
+  let descrs = description.elements
+  let xtitleInfo = _.find(descrs, el=> { return el.name == 'title-info' })
+  let xdocInfo = _.find(descrs, el=> { return el.name == 'document-info' })
+  let xpubInfo = _.find(descrs, el=> { return el.name == 'publish-info' })
+  // log('xTitle:', xtitleInfo)
+  let titleInfo = stripElement(xtitleInfo)
+  // log('Title:', titleInfo)
+  let annotation
+  if (titleInfo.author) descr.author = parseAuthor(titleInfo.author)
+  if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
+  if (titleInfo['book-title']) descr.title = getText(titleInfo['book-title'])
+  if (titleInfo.lang) descr.lang = getText(titleInfo.lang)
+  if (annotation) descr.annotation = annotation.text.text
+  return descr
+}
+
+function parseDocs(fb) {
+  let docs = []
+  let bodies = _.filter(fb, el=> { return el.name == 'body' })
+  // log('FB', bodies)
+  let body = bodies[0]
+  if (!body) return
+  // notes !
+
+  let els = body.elements
+  // insp(els)
+
+  // let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
+  // let title
+  // if (xtitle) title = parseTitle(xtitle.elements)
+  // else title = ''
+  // // log('BOOK-TITLE', title)
+
+  let level = 0
+  let levnum = 0
+  let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
+  xsections = xsections.slice(0,1)
+  xsections.forEach(sec=> {
+    log('_sec:', sec.elements.slice(0,2))
+    parseSec(docs, level, sec)
+  })
+  log('_DOCS', docs)
+  return []
+}
+
+function parseSec(docs, level, sec) {
+  let elements = sec.elements
+  let xtitle = _.find(elements, el=> { return el.name == 'title'})
+  // let title = parseTitle(xtitle.elements)
+  let titlels = xtitle.elements[0].elements
+  let titledoc = parseParEls(titlels)
+  titledoc.level = level
+  docs.push(titledoc)
+  log('sec-TITLE', xtitle.elements)
+  let xsections = _.filter(elements, el=> { return el.name == 'section'})
+  log('________________________XSECS', xsections.length)
+  xsections.forEach(child=> {
+    let nextlevel = level+1
+    parseSec(nextlevel, child)
+  })
+  let xpars = _.filter(elements, el=> { return el.name == 'p'})
+  xpars = xpars.slice(0,2)
+  xpars.forEach(xpar=> {
+    if (!xpar.elements) return
+    let doc = parseParEls(xpar.elements)
+    // log('_PAR', doc)
+    docs.push(doc)
+  })
+  docs.forEach((doc, idx)=> doc.idx = idx)
+}
+
+function parseParEls(els) {
+  let texts = []
+  let styles = []
+  let pos = 0
+  els.forEach(el=> {
+    // log('_______________PAR ELEM', el)
+    if (el.type == 'text') {
+      let text = cleanText(el.text)
+      texts.push(text)
+      pos += text.split(' ').length
+    } else if (el.type == 'element' && el.name == 'emphasis') {
+      if (!el.elements) return
+      let emph = el.elements[0]
+      let text = cleanText(emph.text)
+      let md = ['_', text, '_'].join('')
+      texts.push(md)
+    } else if (el.type == 'element' && el.name == 'strong') {
+      if (!el.elements) return
+      let emph = el.elements[0]
+      let text = cleanText(emph.text)
+      let md = ['*', text, '*'].join('')
+      texts.push(md)
+    } else if (el.type == 'element' && el.name == 'a') {
+      log('_el:', el)
+      throw new Error('__A ELEMENT')
+      return
+    } else if (el.type == 'element' && el.name == 'style') {
+      log('_el:', el)
+      throw new Error('__STYLE ELEMENT')
+      return
+    } else {
+      log('ERR: NOT PAR TEXT:', el)
+      throw new Error('NOT PAR TEXT')
+    }
+  })
+  let md = texts.join(' ')
+  return {md: md}
+}
+
+
 
 function parseTree(xml) {
   let tree
@@ -99,6 +227,7 @@ function parseTree(xml) {
   return res
 }
 
+
 function parseAuthor(els) {
   let fname = _.find(els, el=> { return el.name == 'first-name' })
   let mname = _.find(els, el=> { return el.name == 'middle-name' })
@@ -141,8 +270,7 @@ function parseParagraph(el, idx) {
   return par
 }
 
-
-function parseSec(parent, sec) {
+function parseSec_(parent, sec) {
   let elements = sec.elements
   let xtitle = _.find(elements, el=> { return el.name == 'title'})
   let title = parseTitle(xtitle.elements)
@@ -151,7 +279,7 @@ function parseSec(parent, sec) {
   let xsections = _.filter(elements, el=> { return el.name == 'section'})
   // log('________________________SECS', xsections.length)
   xsections.forEach(child=> {
-    parseSec(secNode, child)
+    parseSec_(secNode, child)
   })
   let xpars = _.filter(elements, el=> { return el.name == 'p'})
   if (xpars.length) secNode.pars = [], secNode.styles = []
@@ -165,7 +293,7 @@ function parseSec(parent, sec) {
   parent.sections.push(secNode)
 }
 
-function parsePar(els, idx) {
+function parsePar_(els, idx) {
   let texts = []
   let styles = []
   let pos = 0
@@ -207,9 +335,9 @@ function parseTitle(elements) {
 }
 
 
-function parseNotes(notes) {
-  // log('__notes', notes)
-}
+// function parseNotes(notes) {
+//   // log('__notes', notes)
+// }
 
 function cleanText(str) {
   if (!str) return ''
