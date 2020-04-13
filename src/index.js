@@ -102,7 +102,7 @@ function parseDocs(fb) {
     parseSection(docs, level, sec)
   })
 
-  docs.forEach((doc, idx)=> doc.idx = idx)
+  // docs.forEach((doc, idx)=> doc.idx = idx)
   return docs
 }
 
