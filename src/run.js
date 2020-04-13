@@ -1,4 +1,4 @@
-import fb2json from "./index";
+import {fb2json} from "./index";
 const path = require("path")
 const log = console.log
 const fse = require('fs-extra')

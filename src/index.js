@@ -34,12 +34,11 @@ async function parseZip(fbpath) {
 
 async function readFBFile(fbpath) {
   const text1251 = await fse.readFile(fbpath)
-  // return text1251
   const content = iconv.decode(text1251, 'cp1251') //.toString()
   return content
 }
 
-export default (fbpath) => {
+export function fb2json(fbpath)  {
   let ext = path.extname(fbpath)
   let method = (ext == '.zip') ? parseZip : (ext == '.fb2') ? readFBFile : null
   if (!method) return Promise.resolve('not fb2 file')
