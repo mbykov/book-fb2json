@@ -11,8 +11,9 @@ const util = require("util")
 const unzipper = require('unzipper')
 // const miss = require('mississippi')
 const etl = require('etl')
-const iso13 = require('./lib/iso13')
+// const iso13 = require('./lib/iso13')
 const iconv = require('iconv-lite');
+var iso6393 = require('iso-639-3')
 // let decoder = new util.TextDecoder('cp1251')
 
 let insp = (o) => log(util.inspect(o, false, null))
@@ -36,15 +37,20 @@ async function parseZip(fbpath) {
   return content
 }
 
-async function readFile(fbpath) {
+async function readFBFile(fbpath) {
   const text1251 = await fse.readFile(fbpath)
+  // return text1251
   const content = iconv.decode(text1251, 'cp1251') //.toString()
   return content
 }
 
 export default (fbpath) => {
+  let ext = path.extname(fbpath)
+  let method = (ext == '.zip') ? parseZip : (ext == '.fb2') ? readFBFile : null
+  if (!method) return {}
   // return parseZip(fbpath)
-  return readFile(fbpath)
+  // return readFBFile(fbpath)
+  return method(fbpath)
     .then(buffer=> {
       let xml = buffer.toString()
       // let tree = parseTree(xml)
@@ -75,11 +81,16 @@ function parseInfo(fb) {
   let titleInfo = stripElement(xtitleInfo)
   // log('Title:', titleInfo)
   let annotation
+  let lang
   if (titleInfo.author) descr.author = parseAuthor(titleInfo.author)
-  // пока что закрыл
   if (titleInfo.annotation) annotation = parseParagraph(titleInfo.annotation[0], 0)
   if (titleInfo['book-title']) descr.title = getText(titleInfo['book-title'])
-  if (titleInfo.lang) descr.lang = getText(titleInfo.lang)
+  if (titleInfo.lang) lang = getText(titleInfo.lang)
+  if (lang) {
+    let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
+    if (iso) lang = iso.iso6393
+    descr.lang = lang
+  }
   if (annotation) descr.annotation = annotation.text.text
   return descr
 }
@@ -91,8 +102,6 @@ function parseDocs(fb) {
   // log('FB', bodies)
   let body = bodies[0]
   if (!body) return []
-  // notes !
-
   let els = body.elements
   // insp(els)
 
@@ -100,27 +109,27 @@ function parseDocs(fb) {
   // let title
   // if (xtitle) title = parseTitle(xtitle.elements)
   // else title = ''
-  // // log('BOOK-TITLE', title)
+  // log('___BOOK-TITLE', title)
 
   let level = 1
   let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
-  // xsections = xsections.slice(0,1)
   xsections.forEach(sec=> {
-    // log('_sec:', sec.elements.slice(0,2))
     parseSec(docs, level, sec)
   })
-  // log('_DOCS', docs.length)
-  let sidx = {}
-  docs.forEach((doc, idx)=> {
-    doc.idx = idx
-    if (doc.level) {
-      if (sidx[level] > -1) sidx[level] += 1
-      else sidx[level] = 0
-      doc.levnum = sidx[level]
-      log('___LEVEL', idx, sidx[level])
-      // doc.sid = [level, levnum].join('-')
-    }
-  })
+
+  docs.forEach((doc, idx)=> doc.idx = idx)
+
+  // let sidx = {}
+  // docs.forEach((doc, idx)=> {
+  //   doc.idx = idx
+  //   if (doc.level) {
+  //     if (sidx[level] > -1) sidx[level] += 1
+  //     else sidx[level] = 0
+  //     doc.levnum = sidx[level]
+  //     log('___LEVEL', idx, sidx[level])
+  //     // doc.sid = [level, levnum].join('-')
+  //   }
+  // })
 
   return docs
 }
@@ -175,8 +184,9 @@ function parseParEls(els) {
       let md = ['*', text, '*'].join('')
       texts.push(md)
     } else if (el.type == 'element' && el.name == 'a') {
-      console.log('_el:', el)
-      throw new Error('__A ELEMENT')
+      console.log('_A-el:', el)
+      // todo: notes
+      // throw new Error('__A ELEMENT')
       return
     } else if (el.type == 'element' && el.name == 'style') {
       console.log('_el:', el)
