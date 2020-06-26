@@ -7,38 +7,20 @@ const log = console.log
 const isGzip = require('is-gzip')
 const isZip = require('is-zip');
 const util = require("util")
-// const pako = require('pako')
 const unzipper = require('unzipper')
-// const miss = require('mississippi')
-const etl = require('etl')
-// const iso13 = require('./lib/iso13')
+// const etl = require('etl')
 const iconv = require('iconv-lite');
 var iso6393 = require('iso-639-3')
 // let decoder = new util.TextDecoder('utf-8')
 
 let insp = (o) => log(util.inspect(o, false, null))
 
-// let md = []
-// let style = []
-// let pos = 0
-
 const convert = require('xml-js')
-
-function fix1251(text1251) {
-  return iconv.decode(text1251, 'cp1251') //.toString()
-}
-
-// async function readFBFile(fbpath) {
-//   const text1251 = await fse.readFile(fbpath)
-//   const content = iconv.decode(text1251, 'cp1251') //.toString()
-//   return content
-// }
 
 async function parseZip(fbpath) {
   const directory = await unzipper.Open.file(fbpath)
   const file = directory.files[0]
-  const content = await file.buffer()
-  return content
+  return await file.buffer()
 }
 
 export async function fb2json(fbpath)  {
