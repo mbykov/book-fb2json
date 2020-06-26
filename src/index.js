@@ -14,7 +14,7 @@ const etl = require('etl')
 // const iso13 = require('./lib/iso13')
 const iconv = require('iconv-lite');
 var iso6393 = require('iso-639-3')
-// let decoder = new util.TextDecoder('cp1251')
+// let decoder = new util.TextDecoder('utf-8')
 
 let insp = (o) => log(util.inspect(o, false, null))
 
@@ -24,6 +24,15 @@ let insp = (o) => log(util.inspect(o, false, null))
 
 const convert = require('xml-js')
 
+function fix1251(text1251) {
+  return iconv.decode(text1251, 'cp1251') //.toString()
+}
+
+// async function readFBFile(fbpath) {
+//   const text1251 = await fse.readFile(fbpath)
+//   const content = iconv.decode(text1251, 'cp1251') //.toString()
+//   return content
+// }
 
 async function parseZip(fbpath) {
   const directory = await unzipper.Open.file(fbpath)
@@ -32,31 +41,31 @@ async function parseZip(fbpath) {
   return content
 }
 
-async function readFBFile(fbpath) {
-  const text1251 = await fse.readFile(fbpath)
-  const content = iconv.decode(text1251, 'cp1251') //.toString()
-  return content
-}
-
-export function fb2json(fbpath)  {
+export async function fb2json(fbpath)  {
   let ext = path.extname(fbpath)
-  let method = (ext == '.zip') ? parseZip : (ext == '.fb2') ? readFBFile : null
-  if (!method) return Promise.resolve('not fb2 file')
-  return method(fbpath)
-    .then(buffer=> {
-      let xml = buffer.toString()
-      let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
-      let res = JSON.parse(json).elements
-      let fb = _.find(res, el=> { return el.name == 'FictionBook' })
-      if (!fb) return {}
-      fb = fb.elements
-      let info = parseInfo(fb)
-      let docs = parseDocs(fb)
-      return {info: info, docs: docs}
-    }).catch(err=> {
-      console.log('ERR:', err)
-      // throw new Error('ERR: parse XML', +JSON.stringify(err))
-    })
+  let buffer, error
+  try {
+    buffer = (ext == '.zip') ? await parseZip(fbpath) : (ext == '.fb2') ? await fse.readFile(fbpath) : error = 'not .fb2 file'
+  } catch(err) {
+    error = 'not .fb2 file'
+  }
+  if (error) return error
+
+  let xml = buffer.toString()
+  if (/1251/.test(xml.split('\n')[0])) {
+    buffer = iconv.decode(buffer, 'cp1251')
+    xml = buffer.toString()
+  }
+
+  let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
+  let res = JSON.parse(json).elements
+  let fb = _.find(res, el=> { return el.name == 'FictionBook' })
+  if (!fb) return {}
+  fb = fb.elements
+  let info = parseInfo(fb)
+  let docs = parseDocs(fb)
+  // return {info: info, docs: docs}
+  return {info: {}, docs: []}
 }
 
 function parseInfo(fb) {
@@ -90,11 +99,12 @@ function parseDocs(fb) {
   if (!body) return []
   let els = body.elements
 
-  // let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
-  // let title
-  // if (xtitle) title = parseTitle(xtitle.elements)
-  // else title = ''
-  // log('___BOOK-TITLE', title)
+  let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
+  // let title = ''
+  if (xtitle) {
+    let title = parseTitle(xtitle.elements)
+    log('___BOOK-TITLE', xtitle, title)
+  }
 
   let level = 1
   let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
@@ -107,17 +117,21 @@ function parseDocs(fb) {
 }
 
 function parseSection(docs, level, sec) {
+  if (!sec) return
   let elements = sec.elements
   let xtitle = _.find(elements, el=> { return el.name == 'title'})
   // let title = parseTitle(xtitle.elements)
-  let titlels = xtitle.elements[0].elements
-  let titledoc = parseParEls(titlels)
-  titledoc.level = level
-  docs.push(titledoc)
+  if (xtitle) {
+    let titlezero = xtitle.elements[0]
+    let titlels = titlezero.elements
+    let titledoc = parseParEls(titlels)
+    titledoc.level = level
+    docs.push(titledoc)
+  }
   let xsections = _.filter(elements, el=> { return el.name == 'section'})
   xsections.forEach(child=> {
     let nextlevel = level+1
-    parseSection(nextlevel, child)
+    parseSection(docs, nextlevel, child)
   })
   let xpars = _.filter(elements, el=> { return el.name == 'p'})
   // xpars = xpars.slice(0,2)
@@ -152,17 +166,23 @@ function parseParEls(els) {
       let text = cleanText(emph.text)
       let md = ['*', text, '*'].join('')
       texts.push(md)
+    } else if (el.type == 'element' && el.name == 'sup') {
+      let sup = el.elements[0]
+      let text = sup.elements[0].text
+      let md = text
+      texts.push(md)
     } else if (el.type == 'element' && el.name == 'a') {
-      console.log('_A-el:', el)
+      // console.log('_A-el:', el)
       // TODO: NOTES
       // throw new Error('__A ELEMENT')
       return
     } else if (el.type == 'element' && el.name == 'style') {
-      console.log('_el:', el)
+      // console.log('_el:', el)
       throw new Error('__STYLE ELEMENT')
       return
     } else {
       console.log('ERR: NOT PAR TEXT:', el)
+      log('___SUP', el.elements[0])
       throw new Error('NOT PAR TEXT')
     }
   })
@@ -210,7 +230,9 @@ function getText(xdoc) {
 function parseTitle(elements) {
   let el = elements[0]
   if (!el) return {text: 'no title'}
-  let text = el.elements[0].text
+  let elzero = el.elements[0]
+  if (!elzero) return {text: 'no title'}
+  let text = elzero.text
   return cleanText(text)
 }
 
