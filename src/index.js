@@ -64,8 +64,8 @@ export async function fb2json(fbpath)  {
   fb = fb.elements
   let info = parseInfo(fb)
   let docs = parseDocs(fb)
-  // return {info: info, docs: docs}
-  return {info: {}, docs: []}
+  return {info: info, docs: docs}
+  // return {info: {}, docs: docs.slice(0,10)}
 }
 
 function parseInfo(fb) {
@@ -100,11 +100,7 @@ function parseDocs(fb) {
   let els = body.elements
 
   let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
-  // let title = ''
-  if (xtitle) {
-    let title = parseTitle(xtitle.elements)
-    log('___BOOK-TITLE', xtitle, title)
-  }
+  if (xtitle) parseTitle(docs, xtitle, 1)
 
   let level = 1
   let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
@@ -112,8 +108,16 @@ function parseDocs(fb) {
     parseSection(docs, level, sec)
   })
 
-  // docs.forEach((doc, idx)=> doc.idx = idx)
   return docs
+}
+
+function parseTitle(docs, xtitle, level) {
+  if (!xtitle.elements) return
+  xtitle.elements.forEach(titlel=> {
+    let titledoc = parseParEls(titlel.elements)
+    titledoc.level = level
+    docs.push(titledoc)
+  })
 }
 
 function parseSection(docs, level, sec) {
@@ -225,15 +229,6 @@ function getText(xdoc) {
   let el = xdoc[0]
   let text = (el.text) ? cleanText(el.text) : ''
   return text
-}
-
-function parseTitle(elements) {
-  let el = elements[0]
-  if (!el) return {text: 'no title'}
-  let elzero = el.elements[0]
-  if (!elzero) return {text: 'no title'}
-  let text = elzero.text
-  return cleanText(text)
 }
 
 
