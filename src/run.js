@@ -4,13 +4,12 @@ const log = console.log
 // const fse = require('fs-extra')
 
 let fbpath
-// fbpath = '/home/michael/FB2/Derrida/Derrida_Golos-i-fenomen.IALcDQ.217643.fb2.zip'
 
 fbpath = '/home/michael/a/_books/chundler_deep_sleep/chundler_deep_sleep_ru.fb2'
 // fbpath = '/home/michael/a/_books/chundler_deep_sleep/chundler_deep_sleep_en.fb2'
 
 // fbpath = '/home/michael/diglossa.todo/London/London-Solomon_Islands-royallib.com.fb2.zip'
-fbpath = '/home/michael/FB2/Bibikhin_Mir.fb2'
+// fbpath = '/home/michael/FB2/Bibikhin_Mir.fb2'
 
 fbpath = path.resolve(fbpath)
 log('RUN: FBPATH', fbpath)
