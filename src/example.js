@@ -16,6 +16,7 @@ bpath = 'chundler_deep_sleep_ru.fb2'
 // bpath = 'Bibikhin_Mir.fb2'
 bpath = 'fbsample.fb2'
 bpath = 'LeoTolstoy.fb2'
+bpath = 'Palama_K_Kiprian.fb2'
 
 bpath = path.resolve(__dirname, '../test', bpath)
 log('RUN: BPATH', bpath)

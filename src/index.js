@@ -194,7 +194,8 @@ function parseParEls(els) {
       // often used as note reference:
       try {
         let fnref = el.elements[0].elements[0].text
-        texts.push('[' + fnref + ']: ')
+        let ref = ['[', fnref, ']: '].join('').replace('[[', '[').replace(']]', ']')
+        texts.push(ref)
       } catch(err) {
         // log('ERR: some error)
       }
