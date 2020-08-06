@@ -12,6 +12,7 @@ const unzipper = require('unzipper')
 const iconv = require('iconv-lite');
 var iso6393 = require('iso-639-3')
 // let decoder = new util.TextDecoder('utf-8')
+let insp = (o) => log(util.inspect(o, false, null))
 
 const convert = require('xml-js')
 
@@ -45,18 +46,19 @@ export async function fb2md(fbpath)  {
     return {descr: errmess}
   }
 
-  log('___', fbobj)
+  // log('___', fbobj)
 
-  let fb = _.find(fbobj, el=> { return el.name == 'FictionBook' })
-  log('___FB', fb)
-  if (!fb) return {descr: 'empty .fb2 file'}
+  let fictionbook = _.find(fbobj, el=> { return el.name == 'FictionBook' })
+  log('___FB', fictionbook)
+  // insp(fictionbook)
+  if (!fictionbook) return {descr: 'empty .fb2 file'}
 
-  fb = fb.elements
-  let description = _.find(fb, el=> { return el.name == 'description' })
+  let fbels = fictionbook.elements
+  let description = _.find(fbels, el=> { return el.name == 'description' })
   let descr
-  if (description) descr = parseInfo(description)
+  if (fbels) descr = parseInfo(description)
   else descr = {author: 'no author', title: 'no title', lang: 'no lang'}
-  let mds = parseDocs(fb)
+  let mds = parseDocs(fbels)
   let imgs = []
   return {descr, mds, imgs}
 }
@@ -86,6 +88,7 @@ function parseInfo(description) {
 function parseDocs(fb) {
   let docs = []
   let bodies = _.filter(fb, el=> { return el.name == 'body' })
+  log('_BODIES', bodies)
   let body = bodies[0]
   if (!body) return []
   let els = body.elements
@@ -98,6 +101,15 @@ function parseDocs(fb) {
   xsections.forEach(sec=> {
     parseSection(docs, level, sec)
   })
+
+  let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
+  let notes = []
+  if (notel) {
+    notel.elements.forEach(notel=> {
+      let note = parseParEls(notel.elements)
+      log('_NOTE', note)
+    })
+  }
 
   return docs
 }
@@ -168,9 +180,9 @@ function parseParEls(els) {
       let md = text
       texts.push(md)
     } else if (el.type == 'element' && el.name == 'a') {
-      console.log('_A-el:', el)
+      // console.log('____A-el:', el)
       // TODO: NOTES
-      throw new Error('__A ELEMENT')
+      // throw new Error('__A ELEMENT')
       return
     } else if (el.type == 'element' && el.name == 'style') {
       // console.log('_style el:', el)
@@ -178,9 +190,17 @@ function parseParEls(els) {
       return
     } else if (el.type == 'element' && el.name == 'empty-line') {
       return
+    } else if (el.type == 'element' && el.name == 'title') {
+      // often used as note reference:
+      try {
+        let fnref = el.elements[0].elements[0].text
+        texts.push('[' + fnref + ']: ')
+      } catch(err) {
+        // log('ERR: some error)
+      }
     } else {
       // todo: ===================== закончить бредовые элементы
-      // console.log('ERR: NOT PAR TEXT:', el)
+      console.log('ERR: NOT EL:', el)
       // log('__UNKNOWN EL', el.elements[0])
       // throw new Error('NOT PAR TEXT')
     }
