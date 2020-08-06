@@ -38,7 +38,6 @@ export async function fb2md(fbpath)  {
       buffer = iconv.decode(buffer, 'cp1251')
       xml = buffer.toString()
     }
-
     let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
     fbobj = JSON.parse(json).elements
   } catch(err) {
@@ -49,21 +48,21 @@ export async function fb2md(fbpath)  {
   log('___', fbobj)
 
   let fb = _.find(fbobj, el=> { return el.name == 'FictionBook' })
-  if (!fb) {
-    errmess = 'empty .fb2 file'
-    return {descr: errmess}
-  }
+  log('___FB', fb)
+  if (!fb) return {descr: 'empty .fb2 file'}
 
   fb = fb.elements
-  let info = parseInfo(fb)
-  let docs = parseDocs(fb)
-  return {info: info, docs: docs}
-  // return {info: {}, docs: docs.slice(0,10)}
+  let description = _.find(fb, el=> { return el.name == 'description' })
+  let descr
+  if (description) descr = parseInfo(description)
+  else descr = {author: 'no author', title: 'no title', lang: 'no lang'}
+  let mds = parseDocs(fb)
+  let imgs = []
+  return {descr, mds, imgs}
 }
 
-function parseInfo(fb) {
+function parseInfo(description) {
   let descr = {}
-  let description = _.find(fb, el=> { return el.name == 'description' })
   let descrs = description.elements
   let xtitleInfo = _.find(descrs, el=> { return el.name == 'title-info' })
   let xdocInfo = _.find(descrs, el=> { return el.name == 'document-info' })
@@ -134,7 +133,7 @@ function parseSection(docs, level, sec) {
   xpars.forEach(xpar=> {
     if (!xpar.elements) return
     let doc = parseParEls(xpar.elements)
-    log('____DOC', doc)
+    // log('____DOC', doc)
     docs.push(doc)
   })
 }
@@ -169,18 +168,21 @@ function parseParEls(els) {
       let md = text
       texts.push(md)
     } else if (el.type == 'element' && el.name == 'a') {
-      // console.log('_A-el:', el)
+      console.log('_A-el:', el)
       // TODO: NOTES
-      // throw new Error('__A ELEMENT')
+      throw new Error('__A ELEMENT')
       return
     } else if (el.type == 'element' && el.name == 'style') {
-      // console.log('_el:', el)
-      throw new Error('__STYLE ELEMENT')
+      // console.log('_style el:', el)
+      // throw new Error('__STYLE ELEMENT')
+      return
+    } else if (el.type == 'element' && el.name == 'empty-line') {
       return
     } else {
-      console.log('ERR: NOT PAR TEXT:', el)
-      log('___SUP', el.elements[0])
-      throw new Error('NOT PAR TEXT')
+      // todo: ===================== закончить бредовые элементы
+      // console.log('ERR: NOT PAR TEXT:', el)
+      // log('__UNKNOWN EL', el.elements[0])
+      // throw new Error('NOT PAR TEXT')
     }
   })
   let md = texts.join(' ')
