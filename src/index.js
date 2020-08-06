@@ -1,4 +1,4 @@
-//
+'use strict'
 
 const _ = require('lodash')
 const fse = require('fs-extra')
@@ -13,8 +13,6 @@ const iconv = require('iconv-lite');
 var iso6393 = require('iso-639-3')
 // let decoder = new util.TextDecoder('utf-8')
 
-let insp = (o) => log(util.inspect(o, false, null))
-
 const convert = require('xml-js')
 
 async function parseZip(fbpath) {
@@ -23,26 +21,39 @@ async function parseZip(fbpath) {
   return await file.buffer()
 }
 
-export async function fb2json(fbpath)  {
+export async function fb2md(fbpath)  {
   let ext = path.extname(fbpath)
-  let buffer, error
+  let buffer, errmess
   try {
-    buffer = (ext == '.zip') ? await parseZip(fbpath) : (ext == '.fb2') ? await fse.readFile(fbpath) : error = 'not .fb2 file'
+    buffer = (ext == '.zip') ? await parseZip(fbpath) : (ext == '.fb2') ? await fse.readFile(fbpath) : null
   } catch(err) {
-    error = 'not .fb2 file'
-  }
-  if (error) return error
-
-  let xml = buffer.toString()
-  if (/1251/.test(xml.split('\n')[0])) {
-    buffer = iconv.decode(buffer, 'cp1251')
-    xml = buffer.toString()
+    errmess = 'not .fb2 file'
+    return {descr: errmess}
   }
 
-  let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
-  let res = JSON.parse(json).elements
-  let fb = _.find(res, el=> { return el.name == 'FictionBook' })
-  if (!fb) return {}
+  let fbobj
+  try {
+    let xml = buffer.toString()
+    if (/1251/.test(xml.split('\n')[0])) {
+      buffer = iconv.decode(buffer, 'cp1251')
+      xml = buffer.toString()
+    }
+
+    let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
+    fbobj = JSON.parse(json).elements
+  } catch(err) {
+    errmess = 'can not read .fb2 file'
+    return {descr: errmess}
+  }
+
+  log('___', fbobj)
+
+  let fb = _.find(fbobj, el=> { return el.name == 'FictionBook' })
+  if (!fb) {
+    errmess = 'empty .fb2 file'
+    return {descr: errmess}
+  }
+
   fb = fb.elements
   let info = parseInfo(fb)
   let docs = parseDocs(fb)
@@ -72,7 +83,6 @@ function parseInfo(fb) {
   if (annotation) descr.annotation = annotation
   return descr
 }
-
 
 function parseDocs(fb) {
   let docs = []
@@ -124,6 +134,7 @@ function parseSection(docs, level, sec) {
   xpars.forEach(xpar=> {
     if (!xpar.elements) return
     let doc = parseParEls(xpar.elements)
+    log('____DOC', doc)
     docs.push(doc)
   })
 }
