@@ -34,7 +34,7 @@ async function start(bpath, write) {
   // log('_slice', mds.slice(-10))
   // mds = mds.slice(0,5)
   mds.forEach(md=> {
-    if (md[0] == '#') log('_title:', md)
+    // if (md[0] == '#') log('_title:', md)
   })
 
   if (write) {

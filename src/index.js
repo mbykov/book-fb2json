@@ -63,6 +63,8 @@ export async function fb2md(fbpath)  {
   return {descr, mds, imgs}
 }
 
+// d
+
 function parseInfo(description) {
   let descr = {}
   let descrs = description.elements
@@ -187,7 +189,10 @@ function parseParEls(els) {
       // console.log('____A-el:', el)
       // TODO: NOTES
       // throw new Error('__A ELEMENT')
-      return
+      // return
+      let ref = el.elements[0].text
+      // console.log('___ref:', ref)
+      texts.push(ref)
     } else if (el.type == 'element' && el.name == 'style') {
       // console.log('_style el:', el)
       // throw new Error('__STYLE ELEMENT')
