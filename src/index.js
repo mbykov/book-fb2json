@@ -106,14 +106,14 @@ function parseDocs(fb) {
     parseSection(docs, level, sec)
   })
 
-  // let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
-  // let notes = []
-  // if (notel) {
-  //   notel.elements.forEach(notel=> {
-  //     let note = parseParEls(notel.elements)
-  //     // log('_NOTE', note)
-  //   })
-  // }
+  let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
+  let notes = []
+  if (notel) {
+    notel.elements.forEach(notel=> {
+      let note = parseParEls(notel.elements)
+      // log('_NOTE', note)
+    })
+  }
 
   return docs
 }
@@ -187,12 +187,10 @@ function parseParEls(els) {
       texts.push(md)
     } else if (el.type == 'element' && el.name == 'a') {
       // console.log('____A-el:', el)
-      // TODO: NOTES
-      // throw new Error('__A ELEMENT')
-      // return
-      let ref = el.elements[0].text
+      let ref = el.elements[0].text.replace('[', '').replace(']', '')
       // console.log('___ref:', ref)
-      texts.push(ref)
+      let double = ['[', ref, ':', ref, ']'].join('')
+      texts.push(double)
     } else if (el.type == 'element' && el.name == 'style') {
       // console.log('_style el:', el)
       // throw new Error('__STYLE ELEMENT')
@@ -202,9 +200,10 @@ function parseParEls(els) {
     } else if (el.type == 'element' && el.name == 'title') {
       // often used as note reference:
       try {
-        let fnref = el.elements[0].elements[0].text
-        let ref = ['[', fnref, ']: '].join('').replace('[[', '[').replace(']]', ']')
-        texts.push(ref)
+        let ref = el.elements[0].elements[0].text.replace('[', '').replace(']', '')
+        let double = ['[', ref, ':', ref, ']: '].join('') //.replace('[[', '[').replace(']]', ']')
+        // log('_________ref', ref, double)
+        texts.push(double)
       } catch(err) {
         // log('ERR: some error)
       }
