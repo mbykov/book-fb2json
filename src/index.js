@@ -49,7 +49,7 @@ export async function fb2md(fbpath)  {
   // log('___', fbobj)
 
   let fictionbook = _.find(fbobj, el=> { return el.name == 'FictionBook' })
-  log('___FB', fictionbook)
+  // log('___FICTIONBOOK', fictionbook)
   // insp(fictionbook)
   if (!fictionbook) return {descr: 'empty .fb2 file'}
 
@@ -88,28 +88,30 @@ function parseInfo(description) {
 function parseDocs(fb) {
   let docs = []
   let bodies = _.filter(fb, el=> { return el.name == 'body' })
-  log('_BODIES', bodies)
+  log('_BODIES', bodies.length)
   let body = bodies[0]
   if (!body) return []
   let els = body.elements
 
   let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
   if (xtitle) parseTitle(docs, xtitle, 1)
+  log('_XTITLE', xtitle)
 
   let level = 1
   let xsections = _.filter(body.elements, el=> { return el.name == 'section'})
+  xsections = xsections.slice(0,2)
   xsections.forEach(sec=> {
     parseSection(docs, level, sec)
   })
 
-  let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
-  let notes = []
-  if (notel) {
-    notel.elements.forEach(notel=> {
-      let note = parseParEls(notel.elements)
-      log('_NOTE', note)
-    })
-  }
+  // let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
+  // let notes = []
+  // if (notel) {
+  //   notel.elements.forEach(notel=> {
+  //     let note = parseParEls(notel.elements)
+  //     // log('_NOTE', note)
+  //   })
+  // }
 
   return docs
 }
@@ -125,28 +127,30 @@ function parseTitle(docs, xtitle, level) {
 
 function parseSection(docs, level, sec) {
   if (!sec) return
+  // log('_SEC', sec)
   let elements = sec.elements
   let xtitle = _.find(elements, el=> { return el.name == 'title'})
-  // let title = parseTitle(xtitle.elements)
   if (xtitle) {
     let titlezero = xtitle.elements[0]
     let titlels = titlezero.elements
     let titledoc = parseParEls(titlels)
-    titledoc.level = level
+    // titledoc.level = level
+    titledoc = ['#'.repeat(level), titledoc].join(' ')
     docs.push(titledoc)
   }
+
   let xsections = _.filter(elements, el=> { return el.name == 'section'})
   xsections.forEach(child=> {
     let nextlevel = level+1
     parseSection(docs, nextlevel, child)
   })
+
   let xpars = _.filter(elements, el=> { return el.name == 'p'})
-  // xpars = xpars.slice(0,2)
   xpars.forEach(xpar=> {
     if (!xpar.elements) return
-    let doc = parseParEls(xpar.elements)
-    // log('____DOC', doc)
-    docs.push(doc)
+    let md = parseParEls(xpar.elements)
+    // log('____HERE WAS DOC', doc)
+    docs.push(md)
   })
 }
 
@@ -196,7 +200,7 @@ function parseParEls(els) {
         let fnref = el.elements[0].elements[0].text
         let ref = ['[', fnref, ']: '].join('').replace('[[', '[').replace(']]', ']')
         texts.push(ref)
-      } catch(err) {
+2      } catch(err) {
         // log('ERR: some error)
       }
     } else {
@@ -207,7 +211,8 @@ function parseParEls(els) {
     }
   })
   let md = texts.join(' ')
-  return {md: md}
+  // return {md: md}
+  return md
 }
 
 function parseAuthor(els) {
