@@ -200,7 +200,7 @@ function parseParEls(els) {
         let fnref = el.elements[0].elements[0].text
         let ref = ['[', fnref, ']: '].join('').replace('[[', '[').replace(']]', ']')
         texts.push(ref)
-2      } catch(err) {
+      } catch(err) {
         // log('ERR: some error)
       }
     } else {
