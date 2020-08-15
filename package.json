@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.7.2",
+    "cheerio": "^1.0.0-rc.3",
     "etl": "^0.6.8",
     "fs-extra": "^8.1.0",
     "iconv-lite": "^0.5.1",
