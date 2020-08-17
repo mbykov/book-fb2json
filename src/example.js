@@ -37,8 +37,8 @@ async function start(bpath, write) {
   log('_fns:', fns.length)
   log('_refnotes:', refnotes.length)
 
-  refnotes = refnotes.slice(0,5)
-  refnotes.forEach(doc=> {
+  fns = fns.slice(0,2)
+  fns.forEach(doc=> {
     // if (md[0] == '#') log('_title:', md)
     log('_d', doc)
   })

@@ -102,7 +102,7 @@ function parseDocs(fb) {
 
   let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
   let notels = notel ? notel.elements : []
-  let notes = []
+  // let notes = []
   let noteid, refnote
   notels.forEach(notel=> {
     let note = {footnote: true}
@@ -110,15 +110,16 @@ function parseDocs(fb) {
       if (el.name == 'title') refnote = el.elements[0].elements[0].text
       else if (el.name == 'p') note.md = el.elements[0].text
     })
-    if (!note.refnote) return
+    if (!refnote) return
     noteid = refnote.replace('[', '').replace(']', '')
     note._id = ['ref', noteid].join('-')
     // notels.push(notel)
+    // notes.push(note)
     docs.push(note)
   })
-  // log('_NOTELS:')
+  // log('_NOTELS:', notels.length)
   // insp(notels.slice(0,2))
-  // log('_NOTES:')
+  // log('_NOTES:', notes.length)
   // insp(notes.slice(0,5))
   return docs
 }
@@ -190,18 +191,16 @@ function parseParEls(els) {
     } else if (el.type == 'element' && el.name == 'a') {
       // console.log('____A-el:', el)
       let ref = el.elements[0].text.replace('[', '').replace(']', '')
-      console.log('___ref:', ref)
       let refnote = ['[', ref, ']'].join('')
       texts.push(refnote)
       if (!doc.refnote) doc.refnote = {}
-      doc.refnote[refnote] = refnote
+      doc.refnote[ref] = ref
     } else if (el.type == 'element' && el.name == 'style') {
-      // console.log('_style el:', el)
-      // throw new Error('__STYLE ELEMENT')
       return
     } else if (el.type == 'element' && el.name == 'empty-line') {
       return
     } else if (el.type == 'element' && el.name == 'title') {
+      return
       // often used as note reference:
       try {
         let ref = el.elements[0].elements[0].text.replace('[', '').replace(']', '')
@@ -216,7 +215,7 @@ function parseParEls(els) {
       // todo: ===================== закончить бредовые элементы
       console.log('ERR: NOT EL:', el)
       // log('__UNKNOWN EL', el.elements[0])
-      // throw new Error('NOT PAR TEXT')
+      throw new Error('NOT PAR TEXT')
     }
   })
   let md = texts.join(' ').trim()
