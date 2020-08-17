@@ -69,15 +69,3 @@ export function cleanDname(author = '', title = '') {
   let str = [author.slice(0,25), title.slice(0,25)].join('-')
   return str.replace(/[)(,\.]/g,'').replace(/\s+/g, '-').replace(/\//g, '_').replace(/^-/, '')
 }
-
-// fb2md(bpath)
-//   .then(res=> {
-//     log('_result')
-//     insp(res)
-//     if (!res.docs) return
-//     log(res.docs.slice(-1))
-//     log('_docs', res.docs.length)
-//     res.docs.forEach(doc=> {
-//       if (doc.level > -1) log('_title:', doc)
-//     })
-//   })
