@@ -39,31 +39,26 @@ export async function fb2md(fbpath)  {
       buffer = iconv.decode(buffer, 'cp1251')
       xml = buffer.toString()
     }
-    let json = convert.xml2json(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
-    fbobj = JSON.parse(json).elements
+    fbobj = convert.xml2js(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
   } catch(err) {
     errmess = 'can not read .fb2 file'
     return {descr: errmess}
   }
 
-  // log('___', fbobj)
-
-  let fictionbook = _.find(fbobj, el=> { return el.name == 'FictionBook' })
-  // log('___FICTIONBOOK', fictionbook)
+  let fictionbook = _.find(fbobj.elements, el=> { return el.name == 'FictionBook' })
   // insp(fictionbook)
   if (!fictionbook) return {descr: 'empty .fb2 file'}
+  // log('___FICTIONBOOK', fictionbook)
 
   let fbels = fictionbook.elements
   let description = _.find(fbels, el=> { return el.name == 'description' })
   let descr
   if (fbels) descr = parseInfo(description)
   else descr = {author: 'no author', title: 'no title', lang: 'no lang'}
-  let mds = parseDocs(fbels)
+  let docs = parseDocs(fbels)
   let imgs = []
-  return {descr, mds, imgs}
+  return {descr, docs, imgs}
 }
-
-// d
 
 function parseInfo(description) {
   let descr = {}
@@ -90,7 +85,6 @@ function parseInfo(description) {
 function parseDocs(fb) {
   let docs = []
   let bodies = _.filter(fb, el=> { return el.name == 'body' })
-  log('_BODIES', bodies.length)
   let body = bodies[0]
   if (!body) return []
   let els = body.elements
@@ -107,14 +101,25 @@ function parseDocs(fb) {
   })
 
   let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
+  let notels = notel ? notel.elements : []
   let notes = []
-  if (notel) {
-    notel.elements.forEach(notel=> {
-      let note = parseParEls(notel.elements)
-      // log('_NOTE', note)
+  let noteid, refnote
+  notels.forEach(notel=> {
+    let note = {footnote: true}
+    notel.elements.forEach(el=> {
+      if (el.name == 'title') refnote = el.elements[0].elements[0].text
+      else if (el.name == 'p') note.md = el.elements[0].text
     })
-  }
-
+    if (!note.refnote) return
+    noteid = refnote.replace('[', '').replace(']', '')
+    note._id = ['ref', noteid].join('-')
+    // notels.push(notel)
+    docs.push(note)
+  })
+  // log('_NOTELS:')
+  // insp(notels.slice(0,2))
+  // log('_NOTES:')
+  // insp(notes.slice(0,5))
   return docs
 }
 
@@ -136,8 +141,7 @@ function parseSection(docs, level, sec) {
     let titlezero = xtitle.elements[0]
     let titlels = titlezero.elements
     let titledoc = parseParEls(titlels)
-    // titledoc.level = level
-    titledoc = ['#'.repeat(level), titledoc].join(' ')
+    titledoc.level = level
     docs.push(titledoc)
   }
 
@@ -150,16 +154,14 @@ function parseSection(docs, level, sec) {
   let xpars = _.filter(elements, el=> { return el.name == 'p'})
   xpars.forEach(xpar=> {
     if (!xpar.elements) return
-    let md = parseParEls(xpar.elements)
-    // log('____HERE WAS DOC', doc)
-    docs.push(md)
+    let doc = parseParEls(xpar.elements)
+    docs.push(doc)
   })
 }
 
 function parseParEls(els) {
+  let doc = {}
   let texts = []
-  // let styles = []
-  // let pos = 0
   els.forEach(el=> {
     if (el.type == 'text') {
       let text = cleanText(el.text)
@@ -188,9 +190,11 @@ function parseParEls(els) {
     } else if (el.type == 'element' && el.name == 'a') {
       // console.log('____A-el:', el)
       let ref = el.elements[0].text.replace('[', '').replace(']', '')
-      // console.log('___ref:', ref)
-      let double = ['[', ref, ':', ref, ']'].join('')
-      texts.push(double)
+      console.log('___ref:', ref)
+      let refnote = ['[', ref, ']'].join('')
+      texts.push(refnote)
+      if (!doc.refnote) doc.refnote = {}
+      doc.refnote[refnote] = refnote
     } else if (el.type == 'element' && el.name == 'style') {
       // console.log('_style el:', el)
       // throw new Error('__STYLE ELEMENT')
@@ -201,11 +205,12 @@ function parseParEls(els) {
       // often used as note reference:
       try {
         let ref = el.elements[0].elements[0].text.replace('[', '').replace(']', '')
-        let double = ['[', ref, ':', ref, ']: '].join('') //.replace('[[', '[').replace(']]', ']')
-        // log('_________ref', ref, double)
-        texts.push(double)
+        let footnote = ['[', ref, ']: '].join('')
+        texts.push(footnote)
+        log('__ODD FN', el)
+        throw new Error()
       } catch(err) {
-        // log('ERR: some error)
+        log('FN ERR: some error')
       }
     } else {
       // todo: ===================== закончить бредовые элементы
@@ -214,9 +219,10 @@ function parseParEls(els) {
       // throw new Error('NOT PAR TEXT')
     }
   })
-  let md = texts.join(' ')
-  // return {md: md}
-  return md
+  let md = texts.join(' ').trim()
+  doc.md = md
+  return doc
+  // return md
 }
 
 function parseAuthor(els) {

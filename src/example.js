@@ -13,35 +13,41 @@ let bpath
 bpath = 'chundler_deep_sleep_ru.fb2'
 // bpath = 'chundler_deep_sleep_en.fb2'
 // bpath = 'London-Solomon_Islands-royallib.com.fb2.zip'
-// bpath = 'Bibikhin_Mir.fb2'
 bpath = 'fbsample.fb2'
 bpath = 'LeoTolstoy.fb2'
 bpath = 'Palama_K_Kiprian.fb2'
+// bpath = 'Bibikhin_Mir.fb2'
 
 bpath = path.resolve(__dirname, '../test', bpath)
 log('RUN: BPATH', bpath)
 
 async function start(bpath, write) {
-  let {descr, mds, imgs} = await fb2md(bpath)
-  if (!mds) {
+  let {descr, docs, imgs} = await fb2md(bpath)
+  if (!docs) {
     log('_ERR:', descr)
     return
   }
 
-  // log('_descr:', descr)
-  log('_mds:', mds.length)
+  log('_descr:', descr)
+  log('_docs:', docs.length)
   log('_imgs', imgs.length)
   // log('_slice', mds.slice(-10))
-  // mds = mds.slice(0,5)
-  mds.forEach(md=> {
+  let fns = docs.filter(doc=> doc.footnote)
+  let refnotes = docs.filter(doc=> doc.refnote)
+  log('_fns:', fns.length)
+  log('_refnotes:', refnotes.length)
+
+  refnotes = refnotes.slice(0,5)
+  refnotes.forEach(doc=> {
     // if (md[0] == '#') log('_title:', md)
+    log('_d', doc)
   })
 
   if (write) {
     log('___WRITING', bpath)
-    writeFiles(bpath, descr, mds)
+    writeFiles(bpath, descr, docs)
   } else {
-    return {descr, mds, imgs}
+    return {descr, docs, imgs}
   }
 }
 
