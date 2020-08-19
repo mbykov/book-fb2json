@@ -22,7 +22,7 @@ async function parseZip(fbpath) {
   return await file.buffer()
 }
 
-export async function fb2md(fbpath)  {
+export async function fb2json(fbpath)  {
   let ext = path.extname(fbpath)
   let buffer, errmess
   try {
@@ -55,6 +55,7 @@ export async function fb2md(fbpath)  {
   else descr = {author: 'no author', title: 'no title', lang: 'no lang'}
   let docs = parseDocs(fbels)
   let imgs = []
+  log('____FB2-docs', docs.length)
   return {descr, docs, imgs}
 }
 
@@ -181,6 +182,7 @@ function parseParEls(els) {
       let refnote = ['[', ref, ']'].join('')
       texts.push(refnote)
       if (!doc.refnote) doc.refnote = {}
+      // doc.refnote[ref] = ['ref', ref].join('-')
       doc.refnote[ref] = ref
     } else if (el.type == 'element' && el.name == 'style') {
       return

@@ -1,6 +1,6 @@
 'use strict'
 
-import { fb2md } from "./index";
+import { fb2json } from "./index";
 const path = require("path")
 const log = console.log
 // const fse = require('fs-extra')
@@ -22,7 +22,7 @@ bpath = path.resolve(__dirname, '../test', bpath)
 log('RUN: BPATH', bpath)
 
 async function start(bpath, write) {
-  let {descr, docs, imgs} = await fb2md(bpath)
+  let {descr, docs, imgs} = await fb2json(bpath)
   if (!docs) {
     log('_ERR:', descr)
     return
@@ -33,13 +33,13 @@ async function start(bpath, write) {
   log('_imgs', imgs.length)
   // log('_slice', mds.slice(-10))
   let fns = docs.filter(doc=> doc.footnote)
-  let refnotes = docs.filter(doc=> doc.refnote)
+  let refs = docs.filter(doc=> doc.refnote)
   log('_fns:', fns.length)
-  log('_refnotes:', refnotes.length)
+  log('_refs:', refs.length)
 
-  fns = fns.slice(0,2)
-  fns.forEach(doc=> {
-    // if (md[0] == '#') log('_title:', md)
+  let tmps = refs.slice(0,2)
+  tmps.forEach(doc=> {
+    // if (doc.level) log('_title:', doc)
     log('_d', doc)
   })
 
