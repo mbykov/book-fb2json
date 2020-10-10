@@ -16,6 +16,7 @@ bpath = 'LeoTolstoy.fb2'
 bpath = 'Palama_K_Kiprian.fb2'
 bpath = 'Derrida_Golos-i-fenomen.IALcDQ.217643.fb2'
 bpath = 'Derrida_Golos-i-fenomen.IALcDQ.217643.fb2.zip'
+bpath = 'Kamyu_Chuma.L3Zorw.230684.fb2.zip'
 
 bpath = path.resolve(__dirname, '../test', bpath)
 
@@ -35,6 +36,9 @@ async function start(bpath, write) {
   log('_fns:', fns.length)
   log('_refs:', refs.length)
   log('RUN: BPATH', bpath)
+
+  let headers = docs.filter(doc=> doc.level)
+  log('_headers', headers)
 
   let tmps = refs.slice(0,2)
   tmps.forEach(doc=> {
@@ -68,3 +72,13 @@ export function cleanDname(author = '', title = '') {
   let str = [author.slice(0,25), title.slice(0,25)].join('-')
   return str.replace(/[)(,\.]/g,'').replace(/\s+/g, '-').replace(/\//g, '_').replace(/^-/, '')
 }
+
+
+/*
+  было:
+  _docs: 1042
+  _imgs 0
+  _fns: 38
+  _refs: 14
+
+*/

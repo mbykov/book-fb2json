@@ -53,9 +53,9 @@ export async function fb2json(fbpath)  {
   let descr
   if (fbels) descr = parseInfo(description)
   else descr = {author: 'no author', title: 'no title', lang: 'no lang'}
-  let docs = parseDocs(fbels)
+  let docs = parseFB(fbels)
   let imgs = []
-  log('____FB2-docs', docs.length)
+  log('____FB2-docs____', docs.length)
   return {descr, docs, imgs}
 }
 
@@ -81,21 +81,12 @@ function parseInfo(description) {
   return descr
 }
 
-function parseDocs(fb) {
+function parseFB(fb) {
   let docs = []
   let bodies = fb.filter(el=> { return el.name == 'body' })
-  let body = bodies[0]
-  if (!body) return []
-  let els = body.elements
-
-  let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
-  if (xtitle) parseTitle(docs, xtitle, 1)
-
-  let level = 1
-  let xsections = body.elements.filter(el=> { return el.name == 'section'})
-  xsections = xsections.slice(0,2)
-  xsections.forEach(sec=> {
-    parseSection(docs, level, sec)
+  bodies.forEach(body=> {
+    let bdocs = parseDocs(body)
+    docs.push(...bdocs)
   })
 
   let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
@@ -111,6 +102,21 @@ function parseDocs(fb) {
     noteid = refnote.replace('[', '').replace(']', '')
     note._id = ['ref', noteid].join('-')
     docs.push(note)
+  })
+
+  return docs
+}
+
+function parseDocs(body) {
+  let docs = []
+  let els = body.elements
+  let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
+  if (xtitle) parseTitle(docs, xtitle, 1)
+
+  let level = 1
+  let xsections = body.elements.filter(el=> { return el.name == 'section'})
+  xsections.forEach(sec=> {
+    parseSection(docs, level, sec)
   })
   return docs
 }
