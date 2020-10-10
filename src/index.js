@@ -200,7 +200,7 @@ function parseParEls(els) {
       //   log('FN ERR: some error')
       // }
     } else {
-      // todo: ===================== закончить бредовые элементы
+      // todo: ===================== finish stuff elements
       console.log('ERR: FB2 NOT EL:', el)
       throw new Error('NOT PAR TEXT')
     }

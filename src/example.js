@@ -3,7 +3,6 @@
 import { fb2json } from "./index";
 const path = require("path")
 const log = console.log
-// const fse = require('fs-extra')
 const util = require("util")
 const fse = require('fs-extra')
 let insp = (o) => log(util.inspect(o, false, null))
@@ -11,15 +10,14 @@ let write = process.argv.slice(2)[0] || false
 
 let bpath
 bpath = 'chundler_deep_sleep_ru.fb2'
-// bpath = 'chundler_deep_sleep_en.fb2'
-// bpath = 'London-Solomon_Islands-royallib.com.fb2.zip'
+bpath = 'chundler_deep_sleep_en.fb2'
 bpath = 'fbsample.fb2'
 bpath = 'LeoTolstoy.fb2'
 bpath = 'Palama_K_Kiprian.fb2'
-// bpath = 'Bibikhin_Mir.fb2'
+bpath = 'Derrida_Golos-i-fenomen.IALcDQ.217643.fb2'
+bpath = 'Derrida_Golos-i-fenomen.IALcDQ.217643.fb2.zip'
 
 bpath = path.resolve(__dirname, '../test', bpath)
-log('RUN: BPATH', bpath)
 
 async function start(bpath, write) {
   let {descr, docs, imgs} = await fb2json(bpath)
@@ -36,11 +34,12 @@ async function start(bpath, write) {
   let refs = docs.filter(doc=> doc.refnote)
   log('_fns:', fns.length)
   log('_refs:', refs.length)
+  log('RUN: BPATH', bpath)
 
   let tmps = refs.slice(0,2)
   tmps.forEach(doc=> {
     // if (doc.level) log('_title:', doc)
-    log('_d', doc)
+    // log('_d', doc)
   })
 
   if (write) {
@@ -53,7 +52,7 @@ async function start(bpath, write) {
 
 start(bpath, write)
 
-function writeFiles(bpath, descr, mds) {
+function writeFiles(bpath, descr, docs) {
   const dirpath = path.dirname(bpath)
   let mdpath = cleanDname(descr.author, descr.title)
   let dglpath = [mdpath, 'dgl'].join('.')
@@ -62,7 +61,7 @@ function writeFiles(bpath, descr, mds) {
   mdpath = path.join(dirpath, mdpath)
   descr.text = ['file:://', mdpath].join('')
   fse.writeJson(dglpath, descr, {spaces: 2})
-  fse.writeJson(mdpath, mds, {spaces: 2})
+  fse.writeJson(mdpath, docs, {spaces: 2})
 }
 
 export function cleanDname(author = '', title = '') {
