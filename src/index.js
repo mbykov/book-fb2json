@@ -36,9 +36,11 @@ export async function fb2json(fbpath)  {
   try {
     let xml = buffer.toString()
     if (/1251/.test(xml.split('\n')[0])) {
+      log('_1251')
       buffer = iconv.decode(buffer, 'cp1251')
       xml = buffer.toString()
     }
+    // log('_X', xml)
     fbobj = convert.xml2js(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
   } catch(err) {
     errmess = 'can not read .fb2 file'
@@ -55,7 +57,7 @@ export async function fb2json(fbpath)  {
   else descr = {author: 'no author', title: 'no title', lang: 'no lang'}
   let docs = parseFB(fbels)
   let imgs = []
-  log('____FB2-docs____', docs.length)
+  // log('____FB2-docs____', docs.length)
   return {descr, docs, imgs}
 }
 
@@ -83,13 +85,14 @@ function parseInfo(description) {
 
 function parseFB(fb) {
   let docs = []
-  let bodies = fb.filter(el=> { return el.name == 'body' })
-  bodies.forEach(body=> {
+  let rawbodies = fb.filter(el=> { return el.name == 'body' })
+  let body = rawbodies.find(el=> { return el.name == 'body' })
+  let notel =  _.find(rawbodies, body=> body.attributes && body.attributes.name == 'notes')
+  // bodies.forEach(body=> {
     let bdocs = parseDocs(body)
     docs.push(...bdocs)
-  })
+  // })
 
-  let notel =  _.find(bodies, body=> body.attributes && body.attributes.name == 'notes')
   let notels = notel ? notel.elements : []
   let noteid, refnote
   notels.forEach(notel=> {
@@ -119,15 +122,6 @@ function parseDocs(body) {
     parseSection(docs, level, sec)
   })
   return docs
-}
-
-function parseTitle(docs, xtitle, level) {
-  if (!xtitle.elements) return
-  xtitle.elements.forEach(titlel=> {
-    let titledoc = parseParEls(titlel.elements)
-    titledoc.level = level
-    docs.push(titledoc)
-  })
 }
 
 function parseSection(docs, level, sec) {
@@ -188,7 +182,6 @@ function parseParEls(els) {
       let refnote = ['[', ref, ']'].join('')
       texts.push(refnote)
       if (!doc.refnote) doc.refnote = {}
-      // doc.refnote[ref] = ['ref', ref].join('-')
       doc.refnote[ref] = ref
     } else if (el.type == 'element' && el.name == 'style') {
       return
@@ -255,4 +248,13 @@ function cleanText(str) {
   if (!str) return ''
   let clean = str.replace(/\s\s+/g, ' ')
   return clean
+}
+
+function parseTitle(docs, xtitle, level) {
+  if (!xtitle.elements) return
+  xtitle.elements.forEach(titlel=> {
+    let titledoc = parseParEls(titlel.elements)
+    titledoc.level = level
+    docs.push(titledoc)
+  })
 }
