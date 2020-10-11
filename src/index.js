@@ -116,7 +116,7 @@ function parseDocs(body) {
   let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
   if (xtitle) parseTitle(docs, xtitle, 1)
 
-  let level = 1
+  let level = 2
   let xsections = body.elements.filter(el=> { return el.name == 'section'})
   xsections.forEach(sec=> {
     parseSection(docs, level, sec)
