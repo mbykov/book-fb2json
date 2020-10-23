@@ -17,6 +17,7 @@ bpath = 'Palama_K_Kiprian.fb2'
 bpath = 'Derrida_Golos-i-fenomen.IALcDQ.217643.fb2'
 bpath = 'Derrida_Golos-i-fenomen.IALcDQ.217643.fb2.zip'
 bpath = 'Kamyu_Chuma.L3Zorw.230684.fb2.zip'
+bpath = 'Gryem_Grin_Nash_chelovek_v_Gavane.fb2'
 
 bpath = path.resolve(__dirname, '../test', bpath)
 
