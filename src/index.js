@@ -89,8 +89,8 @@ function parseFB(fb) {
   let body = rawbodies.find(el=> { return el.name == 'body' })
   let notel =  _.find(rawbodies, body=> body.attributes && body.attributes.name == 'notes')
   // bodies.forEach(body=> {
-    let bdocs = parseDocs(body)
-    docs.push(...bdocs)
+  let bdocs = parseDocs(body)
+  docs.push(...bdocs)
   // })
 
   let notels = notel ? notel.elements : []
@@ -107,6 +107,12 @@ function parseFB(fb) {
     docs.push(note)
   })
 
+  // log('_L 2 docs-0', docs[0])
+  let headers = docs.filter(doc=> doc.level)
+  if (!headers.length) {
+    let xtitle = docs[0]
+    xtitle.level = 1
+  }
   return docs
 }
 
