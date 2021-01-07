@@ -1,5 +1,5 @@
 {
-  "name": "fb2json",
+  "name": "book-fb2json",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
@@ -8,17 +8,14 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.2.2",
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
     "@babel/plugin-transform-runtime": "^7.6.2",
-    "@babel/preset-env": "^7.3.1"
+    "@babel/preset-env": "^7.12.11"
   },
   "dependencies": {
-    "@babel/runtime": "^7.7.2",
-    "cheerio": "^1.0.0-rc.3",
-    "etl": "^0.6.8",
-    "fs-extra": "^8.1.0",
-    "iconv-lite": "^0.5.1",
+    "fs-extra": "^9.0.1",
+    "iconv-lite": "^0.6.2",
     "is-gzip": "^2.0.0",
     "is-zip": "^1.0.0",
     "iso-639-3": "^2.0.0",
