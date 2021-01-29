@@ -4,8 +4,6 @@ const _ = require('lodash')
 const fse = require('fs-extra')
 const path = require("path")
 const log = console.log
-// const isGzip = require('is-gzip')
-// const isZip = require('is-zip');
 const util = require("util")
 const unzipper = require('unzipper')
 const iconv = require('iconv-lite');
@@ -35,11 +33,10 @@ export async function fb2json(fbpath)  {
   try {
     let xml = buffer.toString()
     if (/1251/.test(xml.split('\n')[0])) {
-      log('_1251')
       buffer = iconv.decode(buffer, 'cp1251')
       xml = buffer.toString()
     }
-    // log('_X', xml)
+
     fbobj = convert.xml2js(xml, {compact: false, trim: true, ignoreDeclaration: true, ignoreComment: true, ignoreCdata: true});
   } catch(err) {
     errmess = 'can not read .fb2 file'
@@ -56,7 +53,16 @@ export async function fb2json(fbpath)  {
   else descr = {author: 'no author', title: 'no title', lang: 'no lang'}
   let docs = parseFB(fbels)
   let imgs = []
-  // log('____FB2-docs____', docs.length)
+
+  let headers = docs.filter(doc=> doc.level)
+  if (!headers.length) {
+    docs[0].level = 1
+  } else if (!headers.filter(doc=> doc.level == 1).length) {
+    let md = [descr.author, descr.title].join('. ')
+    let xtitle = {md, level: 1}
+    docs.unshift(xtitle)
+  }
+
   return {descr, docs, imgs}
 }
 
@@ -106,12 +112,6 @@ function parseFB(fb) {
     docs.push(note)
   })
 
-  // log('_L 2 docs-0', docs[0])
-  let headers = docs.filter(doc=> doc.level)
-  if (!headers.length) {
-    let xtitle = docs[0]
-    xtitle.level = 1
-  }
   return docs
 }
 
@@ -237,7 +237,7 @@ function getEls(xdoc) {
 }
 
 function getOnlyEl(xdoc) {
-  if (!xdoc) return ''
+  if (!xdoc || !xdoc.elements || !xdoc.elements.length) return ''
   let el = xdoc.elements[0]
   let text = (el.text) ? el.text : ''
   return text
