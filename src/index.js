@@ -117,48 +117,81 @@ function parseFB(fb) {
 
 function parseDocs(body) {
   let docs = []
-  let els = body.elements
-  let xtitle = _.find(body.elements, el=> { return el.name == 'title'})
-  if (xtitle) parseTitle(docs, xtitle, 1)
-
-  let level = 2
-  let xsections = body.elements.filter(el=> { return el.name == 'section'})
-  xsections.forEach(sec=> {
-    parseSection(docs, level, sec)
+  // let els = body.elements
+  let level = 1
+  body.elements.forEach(el=> {
+    if (el.name == 'title') {
+      parseTitle(docs, el, level)
+    } else if (el.name == 'section') {
+      parseSection(docs, level, el)
+    } else {
+      log('___ELSE', el)
+    }
   })
   return docs
 }
 
 function parseSection(docs, level, sec) {
   if (!sec) return
-  let elements = sec.elements
-  let xtitle = _.find(elements, el=> { return el.name == 'title'})
-  if (xtitle) {
-    let titlezero = xtitle.elements[0]
-    let titlels = titlezero.elements
-    let titledoc = parseParEls(titlels)
-    titledoc.level = level
-    docs.push(titledoc)
-  }
-
-  let xsections = elements.filter(el=> { return el.name == 'section'})
-  xsections.forEach(child=> {
-    let nextlevel = level+1
-    parseSection(docs, nextlevel, child)
+  sec.elements.forEach(el=> {
+    if (el.name == 'title') {
+      parseTitle(docs, el, level)
+    } else if (el.name == 'section') {
+      parseSection(docs, level, el)
+    } else if (el.name == 'cite') {
+      let quotes = parseQuote(el.elements)
+      // log('_Q', quotes)
+      docs.push(...quotes)
+    } else if (el.name == 'poem') {
+      let lines = parsePoem(el.elements)
+      docs.push(...lines)
+      // log('_POEM', lines)
+    } else if (el.name == 'p') {
+      let doc = parseParEls(el.elements)
+      docs.push(doc)
+    } else {
+      log('___ELSE', el)
+    }
   })
 
-  let xpars = elements.filter(el=> { return el.name == 'p'})
-  xpars.forEach(xpar=> {
-    if (!xpar.elements) return
-    let doc = parseParEls(xpar.elements)
-    docs.push(doc)
-  })
+  return
+  // let elements = sec.elements
+
+  // let xtitle = _.find(elements, el=> { return el.name == 'title'})
+  // if (xtitle) {
+  //   xtitle.elements.forEach(el=> {
+  //     let titlels = el.elements
+  //     if (!titlels) return
+  //     let titledoc = parseParEls(titlels)
+  //     titledoc.level = level
+  //     docs.push(titledoc)
+  //   })
+  // }
+
+  // let xsections = elements.filter(el=> { return el.name == 'section'})
+  // xsections.forEach(child=> {
+  //   let nextlevel = level+1
+  //   parseSection(docs, nextlevel, child)
+  // })
+
+  // let noxpars = elements.filter(el=> { return el.name != 'p' && el.name != 'section'})
+  // log('_noxpars', noxpars)
+  // let xpars = elements.filter(el=> { return el.name == 'p'})
+  // xpars.forEach(xpar=> {
+  //   if (!xpar.elements) return
+  //   let doc = parseParEls(xpar.elements)
+  //   docs.push(doc)
+  // })
 }
 
 function parseParEls(els) {
   let doc = {}
   let texts = []
   els.forEach(el=> {
+    // let json = JSON.stringify(el)
+    // if (/СТАРШЕГО/.test(json)) {
+    //   log('_DOLOY', el)
+    // }
     if (el.type == 'text') {
       let text = cleanText(el.text)
       texts.push(text)
@@ -178,16 +211,26 @@ function parseParEls(els) {
       let md = ['*', text, '*'].join('')
       texts.push(md)
     } else if (el.type == 'element' && el.name == 'sup') {
+      if (!el.elements || el.elements.length) return
       let sup = el.elements[0]
       let text = sup.elements[0].text
       let md = text
       texts.push(md)
     } else if (el.type == 'element' && el.name == 'a') {
+      if (!el.elements[0].text) return
       let ref = el.elements[0].text.replace('[', '').replace(']', '')
       let refnote = ['[', ref, ']'].join('')
       texts.push(refnote)
       if (!doc.refnote) doc.refnote = {}
       doc.refnote[ref] = ref
+    } else if (el.type == 'element' && el.name == 'stanza') {
+      let par = parseParEls(el.elements)
+      texts.push(par.md)
+    } else if (el.type == 'element' && el.name == 'v') {
+      let text = cleanText(el.elements[0].text)
+      log('_LIST', el)
+      texts.push(text)
+      doc.type = 'list'
     } else if (el.type == 'element' && el.name == 'style') {
       return
     } else if (el.type == 'element' && el.name == 'empty-line') {
@@ -206,10 +249,11 @@ function parseParEls(els) {
     } else {
       // todo: ===================== finish stuff elements
       console.log('ERR: FB2 NOT EL:', el)
-      throw new Error('NOT PAR TEXT')
+      throw new Error('NOT A PAR TEXT') // todo: del
     }
   })
   doc.md = texts.join(' ').trim()
+  if (doc.type == 'list') log('_DL', doc)
   return doc
 }
 
@@ -262,4 +306,31 @@ function parseTitle(docs, xtitle, level) {
     titledoc.level = level
     docs.push(titledoc)
   })
+}
+
+function parsePoem(els) {
+  let poemdocs = []
+  els.forEach(stanza=> {
+    let vs = stanza.elements.filter(v=> v.name == 'v')
+    vs.forEach((v, idx)=> {
+      let vtexts = v.elements.filter(v=> v.text)
+      vtexts.forEach(vel=> {
+        let doc = {md: vel.text, type: 'list'}
+        if (!idx) doc.type = 'ulist'
+        poemdocs.push(doc)
+      })
+    })
+  })
+  return poemdocs
+}
+
+function parseQuote(els) {
+  let qdocs = []
+  els.forEach(quotel=> {
+    if (!quotel.elements) return
+    let doc = {md: quotel.elements[0].text, type: 'quote'}
+    // log('_QQ', quotel)
+    qdocs.push(doc)
+  })
+  return qdocs
 }
