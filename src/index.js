@@ -273,7 +273,7 @@ function parseTitle(docs, xtitle, level) {
   xtitle.elements.forEach(titlel=> {
     let titledoc = parseParEls(titlel.elements)
     titledoc.level = level
-    docs.push(titledoc)
+    if (titledoc.md) docs.push(titledoc)
   })
 }
 
@@ -286,7 +286,7 @@ function parsePoem(els) {
       vtexts.forEach(vel=> {
         let doc = {md: vel.text, type: 'list'}
         if (!idx) doc.type = 'ulist'
-        poemdocs.push(doc)
+        if (doc.md) poemdocs.push(doc)
       })
     })
   })
@@ -299,7 +299,7 @@ function parseQuote(els) {
     if (!quotel.elements) return
     let doc = {md: quotel.elements[0].text, type: 'quote'}
     // log('_QQ', quotel)
-    qdocs.push(doc)
+    if (doc.md) qdocs.push(doc)
   })
   return qdocs
 }
