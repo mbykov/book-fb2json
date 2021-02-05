@@ -125,8 +125,9 @@ function parseDocs(body) {
     } else if (el.name == 'section') {
       parseSection(docs, level, el)
     } else {
-      log('___ELSE', el)
-      throw new Error('_ELSE')
+      // log('___ELSE', el)
+      // empty-line
+      // image
     }
   })
   return docs
@@ -142,12 +143,10 @@ function parseSection(docs, level, sec) {
       parseSection(docs, level, el)
     } else if (el.name == 'cite') {
       let quotes = parseQuote(el.elements)
-      // log('_Q', quotes)
       docs.push(...quotes)
     } else if (el.name == 'poem') {
       let lines = parsePoem(el.elements)
       docs.push(...lines)
-      // log('_POEM', lines)
     } else if (el.name == 'p') {
       let doc = parseParEls(el.elements)
       docs.push(doc)
