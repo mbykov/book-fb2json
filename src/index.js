@@ -126,12 +126,14 @@ function parseDocs(body) {
       parseSection(docs, level, el)
     } else {
       log('___ELSE', el)
+      throw new Error('_ELSE')
     }
   })
   return docs
 }
 
 function parseSection(docs, level, sec) {
+  level += 1
   if (!sec) return
   sec.elements.forEach(el=> {
     if (el.name == 'title') {
@@ -154,44 +156,12 @@ function parseSection(docs, level, sec) {
     }
   })
 
-  return
-  // let elements = sec.elements
-
-  // let xtitle = _.find(elements, el=> { return el.name == 'title'})
-  // if (xtitle) {
-  //   xtitle.elements.forEach(el=> {
-  //     let titlels = el.elements
-  //     if (!titlels) return
-  //     let titledoc = parseParEls(titlels)
-  //     titledoc.level = level
-  //     docs.push(titledoc)
-  //   })
-  // }
-
-  // let xsections = elements.filter(el=> { return el.name == 'section'})
-  // xsections.forEach(child=> {
-  //   let nextlevel = level+1
-  //   parseSection(docs, nextlevel, child)
-  // })
-
-  // let noxpars = elements.filter(el=> { return el.name != 'p' && el.name != 'section'})
-  // log('_noxpars', noxpars)
-  // let xpars = elements.filter(el=> { return el.name == 'p'})
-  // xpars.forEach(xpar=> {
-  //   if (!xpar.elements) return
-  //   let doc = parseParEls(xpar.elements)
-  //   docs.push(doc)
-  // })
 }
 
 function parseParEls(els) {
   let doc = {}
   let texts = []
   els.forEach(el=> {
-    // let json = JSON.stringify(el)
-    // if (/СТАРШЕГО/.test(json)) {
-    //   log('_DOLOY', el)
-    // }
     if (el.type == 'text') {
       let text = cleanText(el.text)
       texts.push(text)

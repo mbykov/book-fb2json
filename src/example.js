@@ -20,10 +20,11 @@ bpath = 'Kamyu_Chuma.L3Zorw.230684.fb2.zip'
 bpath = 'Gryem_Grin_Nash_chelovek_v_Gavane.fb2'
 bpath = 'Grin_Our_Man_in_Havana_RuLit_Net_220120.fb2.zip'
 bpath = '1984.fb2.zip'
-// bpath = 'Kaverin.K-Dva-kapitanafb2.zip'
+bpath = 'Kaverin.K-Dva-kapitana.fb2.zip'
 // bpath = 'Eko_Imya-rozy.fb2.zip'
 
 bpath = path.resolve(__dirname, '../test', bpath)
+log('_bpath', bpath)
 
 async function start(bpath, write) {
   let {descr, docs, imgs} = await fb2json(bpath)
