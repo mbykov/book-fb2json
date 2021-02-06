@@ -126,8 +126,6 @@ function parseDocs(body) {
       parseSection(docs, level, el)
     } else {
       // log('___ELSE', el)
-      // empty-line
-      // image
     }
   })
   return docs
@@ -151,7 +149,9 @@ function parseSection(docs, level, sec) {
       let doc = parseParEls(el.elements)
       docs.push(doc)
     } else {
-      log('___ELSE', el)
+      // log('___ELSE', el)
+      // empty-line
+      // image
     }
   })
 
