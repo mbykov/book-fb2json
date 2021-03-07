@@ -197,7 +197,7 @@ function parseParEls(els) {
       texts.push(par.md)
     } else if (el.type == 'element' && el.name == 'v') {
       let text = cleanText(el.elements[0].text)
-      log('_LIST', el)
+      // log('_LIST', el)
       texts.push(text)
       doc.type = 'list'
     } else if (el.type == 'element' && el.name == 'style') {
@@ -222,7 +222,7 @@ function parseParEls(els) {
     }
   })
   doc.md = texts.join(' ').trim()
-  if (doc.type == 'list') log('_DL', doc)
+  // if (doc.type == 'list') log('_DL', doc)
   return doc
 }
 
@@ -298,7 +298,6 @@ function parseQuote(els) {
   els.forEach(quotel=> {
     if (!quotel.elements) return
     let doc = {md: quotel.elements[0].text, type: 'quote'}
-    // log('_QQ', quotel)
     if (doc.md) qdocs.push(doc)
   })
   return qdocs
