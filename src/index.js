@@ -146,8 +146,10 @@ function parseSection(docs, level, sec) {
       let lines = parsePoem(el.elements)
       docs.push(...lines)
     } else if (el.name == 'p') {
+      if (!el.elements) return
       let doc = parseParEls(el.elements)
-      docs.push(doc)
+      if (doc.lines) docs.push(...doc.lines)
+      else docs.push(doc)
     } else {
       // log('___ELSE', el)
       // empty-line
@@ -160,13 +162,14 @@ function parseSection(docs, level, sec) {
 function parseParEls(els) {
   let doc = {}
   let texts = []
+  let lines
   els.forEach(el=> {
     if (el.type == 'text') {
       let text = cleanText(el.text)
       texts.push(text)
     } else if (el.type == 'element' && el.name == 'p') {
-      let par = parseParEls(el.elements)
-      texts.push(par.md)
+      // let par = parseParEls(el.elements)
+      // texts.push(par.md)
     } else if (el.type == 'element' && el.name == 'emphasis') {
       if (!el.elements) return
       let emph = el.elements[0]
@@ -193,11 +196,10 @@ function parseParEls(els) {
       if (!doc.refnote) doc.refnote = {}
       doc.refnote[ref] = ref
     } else if (el.type == 'element' && el.name == 'stanza') {
-      let par = parseParEls(el.elements)
-      texts.push(par.md)
+      // let par = parseParEls(el.elements)
+      // texts.push(par.md)
     } else if (el.type == 'element' && el.name == 'v') {
       let text = cleanText(el.elements[0].text)
-      // log('_LIST', el)
       texts.push(text)
       doc.type = 'list'
     } else if (el.type == 'element' && el.name == 'style') {
@@ -215,14 +217,17 @@ function parseParEls(els) {
       // } catch(err) {
       //   log('FN ERR: some error')
       // }
+    } else if (el.type == 'element' && el.name == 'poem') {
+      doc.lines = parsePoem(el.elements)
+    // } else if (el.type == 'element' && el.name == 'cite') {
+      // doc.lines = parsePoem(el.elements)
     } else {
       // todo: ===================== finish stuff elements
-      console.log('ERR: FB2 NOT EL:', el)
-      throw new Error('NOT A PAR TEXT') // todo: del
+      // console.log('ERR: FB2 NOT EL:', el)
+      // throw new Error('NOT A PAR TEXT') // todo: del
     }
   })
   doc.md = texts.join(' ').trim()
-  // if (doc.type == 'list') log('_DL', doc)
   return doc
 }
 
