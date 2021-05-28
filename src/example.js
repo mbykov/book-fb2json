@@ -15,10 +15,9 @@ log('_bpath', bpath)
 
 async function start(bpath) {
   let {descr, docs, imgs} = await fb2json(bpath)
-  log('_descr:', descr)
-  log('_docs:', docs.length)
+  // log('_descr:', descr)
+  log('_docs:', docs)
   log('_imgs', imgs.length)
-  // log('_slice', mds.slice(-10))
 }
 
 start(bpath)

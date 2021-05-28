@@ -13,6 +13,8 @@ let insp = (o) => log(util.inspect(o, false, null))
 
 const convert = require('xml-js')
 
+var xmlserializer = require('xmlserializer');
+
 async function parseZip(fbpath) {
   const directory = await unzipper.Open.file(fbpath)
   const file = directory.files[0]
@@ -47,10 +49,9 @@ export async function fb2json(fbpath)  {
   if (!fictionbook) return {descr: 'empty .fb2 file'}
 
   let fbels = fictionbook.elements
+  if (!fbels) return {descr: 'empty book'}
   let description = _.find(fbels, el=> { return el.name == 'description' })
-  let descr
-  if (fbels) descr = parseInfo(description)
-  else descr = {author: 'no author', title: 'no title', lang: 'no lang'}
+  let descr = parseInfo(description)
   let docs = parseFB(fbels)
   let imgs = []
 
@@ -62,7 +63,6 @@ export async function fb2json(fbpath)  {
     let xtitle = {md, level: 1}
     docs.unshift(xtitle)
   }
-
   return {descr, docs, imgs}
 }
 
@@ -91,12 +91,12 @@ function parseInfo(description) {
 function parseFB(fb) {
   let docs = []
   let rawbodies = fb.filter(el=> { return el.name == 'body' })
-  let body = rawbodies.find(el=> { return el.name == 'body' })
+  // let body = rawbodies.find(el=> { return el.name == 'body' })
   let notel =  _.find(rawbodies, body=> body.attributes && body.attributes.name == 'notes')
-  // bodies.forEach(body=> {
-  let bdocs = parseDocs(body)
-  docs.push(...bdocs)
-  // })
+  rawbodies.forEach(body=> {
+    let bdocs = parseBody(body)
+    docs.push(...bdocs)
+  })
 
   let notels = notel ? notel.elements : []
   let noteid, refnote
@@ -104,10 +104,10 @@ function parseFB(fb) {
     let note = {footnote: true}
     notel.elements.forEach(el=> {
       if (el.name == 'title') refnote = el.elements[0].elements[0].text
-      else if (el.name == 'p') note.md = el.elements[0].text
+      else if (el.name == 'p') note.md = cleanText(el.elements[0].text)
     })
     if (!refnote) return
-    noteid = refnote.replace('[', '').replace(']', '')
+    noteid = refnote.replace(/\[+/g, '').replace(/\]+/g, '')
     note._id = ['ref', noteid].join('-')
     docs.push(note)
   })
@@ -115,17 +115,19 @@ function parseFB(fb) {
   return docs
 }
 
-function parseDocs(body) {
+function parseBody(body) {
   let docs = []
-  // let els = body.elements
   let level = 1
   body.elements.forEach(el=> {
     if (el.name == 'title') {
       parseTitle(docs, el, level)
     } else if (el.name == 'section') {
       parseSection(docs, level, el)
+    } else if (el.name == 'image') {
+      return // todo:
     } else {
-      // log('___ELSE', el)
+      log('___BODY ELSE', el)
+      // throw new Error()
     }
   })
   return docs
@@ -145,18 +147,40 @@ function parseSection(docs, level, sec) {
     } else if (el.name == 'poem') {
       let lines = parsePoem(el.elements)
       docs.push(...lines)
+    } else if (el.name == 'epigraph') {
+      let lines = parseQuote(el.elements, 'epigraph')
     } else if (el.name == 'p') {
       if (!el.elements) return
-      let doc = parseParEls(el.elements)
-      if (doc.lines) docs.push(...doc.lines)
-      else docs.push(doc)
+      let texts = []
+      let doc = {}
+      parsePar(el.elements, texts, doc)
+      let md = texts.join(' ')
+      md = md.replace(/\[+/g, '[').replace(/\]+/g, ']')
+      doc.md = md
+      docs.push(doc)
     } else {
-      // log('___ELSE', el)
-      // empty-line
-      // image
+      log('___SECTION ELSE', el)
+      // throw new Error()
     }
   })
+}
 
+
+function parsePar(els, texts, doc){
+  els.forEach(el=> {
+    let md = cleanText(el.text)
+    if (el.name == 'a') {
+      if (!doc.refnotes) doc.refnotes = {}
+      let ref = el.elements[0].text
+      ref = ref.replace(/\[+/g, '').replace(/\]+/g, '')
+      doc.refnotes[ref] = ['ref', ref].join('-')
+      // doc.refnotes[el.elements[0].text] = el.attributes['xlink:href'] || el.attributes['l:href']
+      let aref = ['[',el.elements[0].text, ']'].join('')
+      texts.push(aref)
+    }
+    else if (el.type == 'text') texts.push(md)
+    if (el.elements && el.name != 'a') parsePar(el.elements, texts)
+  })
 }
 
 function parseParEls(els) {
@@ -270,6 +294,7 @@ function getText(xdoc) {
 function cleanText(str) {
   if (!str) return ''
   let clean = str.replace(/\s\s+/g, ' ')
+  clean = clean.replace(/\x96/g, '')
   return clean
 }
 
@@ -298,12 +323,18 @@ function parsePoem(els) {
   return poemdocs
 }
 
-function parseQuote(els) {
+function parseQuote(els, type) {
+  if (!type) type = 'quote'
   let qdocs = []
   els.forEach(quotel=> {
     if (!quotel.elements) return
-    let doc = {md: quotel.elements[0].text, type: 'quote'}
+    let md = quotel.elements[0].text
+    let doc = {md: cleanText(md), type: type}
     if (doc.md) qdocs.push(doc)
   })
   return qdocs
+}
+
+function parseEpigraph(els) {
+
 }
