@@ -126,7 +126,7 @@ function parseBody(body) {
     } else if (el.name == 'image') {
       return // todo:
     } else {
-      log('___BODY ELSE', el)
+      // log('___BODY ELSE', el)
       // throw new Error()
     }
   })
@@ -159,7 +159,7 @@ function parseSection(docs, level, sec) {
       doc.md = md
       docs.push(doc)
     } else {
-      log('___SECTION ELSE', el)
+      // log('___SECTION ELSE', el)
       // throw new Error()
     }
   })
@@ -172,6 +172,7 @@ function parsePar(els, texts, doc){
     if (el.name == 'a') {
       if (!doc.refnotes) doc.refnotes = {}
       let ref = el.elements[0].text
+      if (!ref) return
       ref = ref.replace(/\[+/g, '').replace(/\]+/g, '')
       doc.refnotes[ref] = ['ref', ref].join('-')
       // doc.refnotes[el.elements[0].text] = el.attributes['xlink:href'] || el.attributes['l:href']
@@ -179,7 +180,7 @@ function parsePar(els, texts, doc){
       texts.push(aref)
     }
     else if (el.type == 'text') texts.push(md)
-    if (el.elements && el.name != 'a') parsePar(el.elements, texts)
+    if (el.elements && el.name != 'a') parsePar(el.elements, texts, doc)
   })
 }
 

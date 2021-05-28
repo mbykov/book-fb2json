@@ -1,10 +1,10 @@
 {
   "name": "book-fb2json",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "main": "dist/index.js",
   "scripts": {
     "build": "babel src -d dist",
-    "start": "npm run build && node dist/example-me"
+    "start": "npm run build && node dist/example"
   },
   "license": "MIT",
   "devDependencies": {
