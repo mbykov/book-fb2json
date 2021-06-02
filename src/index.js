@@ -313,6 +313,7 @@ function parsePoem(els) {
   els.forEach(stanza=> {
     let vs = stanza.elements.filter(v=> v.name == 'v')
     vs.forEach((v, idx)=> {
+      if (!v.elements) return
       let vtexts = v.elements.filter(v=> v.text)
       vtexts.forEach(vel=> {
         let doc = {md: vel.text, type: 'list'}
